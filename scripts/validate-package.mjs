@@ -54,9 +54,13 @@ const requiredEntries = [
   'icons/icon-48.png',
   'icons/icon-128.png',
 ];
-for (const entry of requiredEntries) {
-  assert(entry in archiveEntries, `Missing archive entry: ${entry}`);
-}
+const actualEntries = Object.keys(archiveEntries).sort();
+assert(
+  JSON.stringify(actualEntries) === JSON.stringify([...requiredEntries].sort()),
+  `Archive entries differ from the allowlist: ${actualEntries.join(', ')}`,
+);
+
+assert(manifest.content_scripts?.length === 1, 'Manifest must contain exactly one content script');
 
 for (const size of [16, 32, 48, 128]) {
   await validatePng(`dist/icons/icon-${size}.png`, size, size);

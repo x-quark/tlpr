@@ -26,13 +26,17 @@ function comment(
 
 function mountTimeline(items: string[]): HTMLElement {
   document.body.innerHTML = `<main class="js-discussion">${items.join('')}</main>`;
+  setTestHeights();
+  return document.querySelector<HTMLElement>('.js-discussion')!;
+}
+
+function setTestHeights(): void {
   document.querySelectorAll<HTMLElement>('[data-test-height]').forEach((body) => {
     Object.defineProperty(body, 'scrollHeight', {
       configurable: true,
       value: Number(body.dataset.testHeight),
     });
   });
-  return document.querySelector<HTMLElement>('.js-discussion')!;
 }
 
 describe('GitHubCommentCollapser', () => {
@@ -75,6 +79,48 @@ describe('GitHubCommentCollapser', () => {
 
     expect(document.querySelectorAll('.tlpr-comment-toggle')).toHaveLength(0);
     expect(document.querySelectorAll('.tlpr-body')).toHaveLength(0);
+  });
+
+  it('enhances a comment after its initial edit mode ends', () => {
+    mountTimeline([comment('1', { editable: true })]);
+    const collapser = new GitHubCommentCollapser();
+    collapser.scan();
+    expect(document.querySelectorAll('.tlpr-comment-toggle')).toHaveLength(0);
+
+    document.querySelector('textarea')!.remove();
+    collapser.scan();
+
+    expect(document.querySelectorAll('.tlpr-comment-toggle')).toHaveLength(1);
+    expect(document.querySelector<HTMLElement>('.comment-body')!.dataset.tlprCollapsed).toBe('1');
+  });
+
+  it('supports representative React and review comment structures', () => {
+    document.body.innerHTML = `
+      <main data-testid="issue-viewer-container">
+        <div class="js-timeline-item">
+          <article class="react-issue-comment" id="react-comment">
+            <header data-testid="comment-header">octocat</header>
+            <div data-testid="markdown-body" data-test-height="220">React comment</div>
+          </article>
+        </div>
+        <div class="js-comment-container">
+          <article class="review-comment js-comment" id="review-comment">
+            <header class="timeline-comment-header">reviewer</header>
+            <div class="comment-body" data-test-height="220">Review comment</div>
+          </article>
+        </div>
+      </main>
+    `;
+    setTestHeights();
+
+    new GitHubCommentCollapser().scan();
+
+    expect(document.querySelectorAll('.tlpr-comment-toggle')).toHaveLength(2);
+    expect(
+      [...document.querySelectorAll<HTMLElement>('.tlpr-body')].map(
+        (body) => body.dataset.tlprCollapsed,
+      ),
+    ).toEqual(['1', '1']);
   });
 
   it('keeps the leading and trailing timeline items visible and toggles the middle', () => {
@@ -132,6 +178,57 @@ describe('GitHubCommentCollapser', () => {
     document.querySelector<HTMLButtonElement>('.tlpr-comment-toggle')!.click();
     expect(replacementBody.dataset.tlprCollapsed).toBe('0');
     expect(originalBody.dataset.tlprCollapsed).toBe('1');
+  });
+
+  it('enhances a complete replacement comment node', () => {
+    mountTimeline([comment('1')]);
+    const collapser = new GitHubCommentCollapser();
+    collapser.scan();
+
+    const wrapper = document.querySelector<HTMLElement>('.TimelineItem')!;
+    wrapper.innerHTML = `
+      <article class="js-comment timeline-comment" id="issuecomment-1">
+        <header class="timeline-comment-header">octocat</header>
+        <div class="comment-body" data-test-height="220">Replacement comment</div>
+      </article>
+    `;
+    setTestHeights();
+    collapser.scan();
+
+    const replacementBody = document.querySelector<HTMLElement>('.comment-body')!;
+    expect(document.querySelectorAll('.tlpr-comment-toggle')).toHaveLength(1);
+    expect(replacementBody.dataset.tlprCollapsed).toBe('1');
+
+    document.querySelector<HTMLButtonElement>('.tlpr-comment-toggle')!.click();
+    expect(replacementBody.dataset.tlprCollapsed).toBe('0');
+  });
+
+  it('keeps per-page state isolated across GitHub soft navigation', () => {
+    const requestAnimationFrame = vi
+      .spyOn(window, 'requestAnimationFrame')
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(0);
+        return 1;
+      });
+    mountTimeline([comment('1')]);
+    const collapser = new GitHubCommentCollapser();
+    collapser.start();
+
+    document.querySelector<HTMLButtonElement>('.tlpr-comment-toggle')!.click();
+    expect(document.querySelector<HTMLElement>('.comment-body')!.dataset.tlprCollapsed).toBe('0');
+
+    window.history.pushState({}, '', '/x-quark/tlpr/pull/2');
+    mountTimeline([comment('1')]);
+    document.dispatchEvent(new Event('soft-nav:success'));
+    expect(document.querySelector<HTMLElement>('.comment-body')!.dataset.tlprCollapsed).toBe('1');
+
+    window.history.pushState({}, '', '/x-quark/tlpr/issues/1');
+    mountTimeline([comment('1')]);
+    document.dispatchEvent(new Event('soft-nav:success'));
+    expect(document.querySelector<HTMLElement>('.comment-body')!.dataset.tlprCollapsed).toBe('0');
+
+    expect(requestAnimationFrame).toHaveBeenCalledTimes(2);
+    collapser.stop();
   });
 
   it('starts one observer and reacts to GitHub navigation events', () => {

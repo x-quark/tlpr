@@ -101,7 +101,7 @@ tests/                   Functional parity tests
 
 ## Current scope
 
-The initial release intentionally reproduces the userscript behavior. It has no settings page, device sync, or GitHub Enterprise support. Its DOM selectors depend on GitHub's interface and are covered by automated fixtures, but a major GitHub redesign may require an update
+The initial release intentionally reproduces the userscript behavior. It has no settings page, device sync, or GitHub Enterprise support. Automated fixtures cover representative legacy, React, and review-comment structures together with DOM replacement, initial edit mode, and cross-page SPA navigation. A GitHub redesign outside these fixtures may require an update
 
 ## Publishing
 
