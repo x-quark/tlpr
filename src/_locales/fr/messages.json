@@ -1,0 +1,45 @@
+{
+  "extensionName": {
+    "message": "TL;PR"
+  },
+  "extensionDescription": {
+    "message": "Rend les longues conversations des pull requests et issues GitHub plus faciles à lire."
+  },
+  "actionTitle": {
+    "message": "TL;PR est actif sur les pull requests et issues GitHub"
+  },
+  "collapse": {
+    "message": "Replier"
+  },
+  "expand": {
+    "message": "Déplier"
+  },
+  "collapseAll": {
+    "message": "Tout replier"
+  },
+  "expandAll": {
+    "message": "Tout déplier"
+  },
+  "show": {
+    "message": "Afficher"
+  },
+  "hide": {
+    "message": "Masquer"
+  },
+  "timelineHiddenOne": {
+    "message": "$COUNT$ élément masqué au milieu de la conversation",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "timelineHiddenMany": {
+    "message": "$COUNT$ éléments masqués au milieu de la conversation",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  }
+}
