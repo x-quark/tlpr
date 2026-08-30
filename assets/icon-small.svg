@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" role="img" aria-labelledby="title desc">
+  <title id="title">TL;PR compact icon</title>
+  <desc id="desc">A compact conversation represented by two lines and a semicolon</desc>
+  <defs>
+    <linearGradient id="accent" x1="6.5" y1="6.5" x2="9.5" y2="10.5" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="12" height="12" rx="3" fill="#0D1117"/>
+  <path d="M4.4 4.8h7.2M4.4 11.4h7.2" fill="none" stroke="#F0F6FC" stroke-width="1.1" stroke-linecap="round"/>
+  <circle cx="8" cy="7.1" r="0.75" fill="url(#accent)"/>
+  <path d="M8.45 8.55c0 .8-.5 1.25-1.2 1.5" fill="none" stroke="url(#accent)" stroke-width="0.9" stroke-linecap="round"/>
+</svg>
