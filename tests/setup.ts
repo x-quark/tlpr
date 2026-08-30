@@ -25,4 +25,9 @@ Object.defineProperty(globalThis, 'chrome', {
 beforeEach(() => {
   document.body.innerHTML = '';
   localStorage.clear();
+  window.history.replaceState({}, '', '/x-quark/tlpr/issues/1');
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });

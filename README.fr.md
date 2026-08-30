@@ -101,7 +101,7 @@ tests/                   Tests de parité fonctionnelle
 
 ## Périmètre actuel
 
-La version initiale reproduit volontairement le comportement du userscript. Elle ne propose ni page de réglages, ni synchronisation entre appareils, ni prise en charge de GitHub Enterprise. Les sélecteurs DOM dépendent de l’interface GitHub et sont couverts par des fixtures automatisées, mais une modification majeure de GitHub peut nécessiter une mise à jour
+La version initiale reproduit volontairement le comportement du userscript. Elle ne propose ni page de réglages, ni synchronisation entre appareils, ni prise en charge de GitHub Enterprise. Des fixtures automatisées couvrent des structures représentatives historiques, React et de revue, ainsi que le remplacement de nœuds DOM, le mode édition initial et la navigation SPA entre pages. Une évolution de GitHub hors de ces fixtures peut nécessiter une mise à jour
 
 ## Publication
 
