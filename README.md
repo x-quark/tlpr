@@ -70,7 +70,7 @@ The commands produce:
 - `release/tlpr-v0.1.0.zip`
 - `release/tlpr-v0.1.0.zip.sha256`
 
-The ZIP contains `manifest.json` at its root and is ready for Chrome Web Store upload
+The ZIP contains `manifest.json`, the GPL license, and a link to the corresponding release source at its root. It is ready for Chrome Web Store upload
 
 ## Development
 
@@ -102,6 +102,12 @@ tests/                   Functional parity tests
 ## Current scope
 
 The initial release intentionally reproduces the userscript behavior. It has no settings page, device sync, or GitHub Enterprise support. Automated fixtures cover representative legacy, React, and review-comment structures together with DOM replacement, initial edit mode, and cross-page SPA navigation. A GitHub redesign outside these fixtures may require an update
+
+## License
+
+TL;PR is distributed under the [GNU General Public License v3.0 only](./LICENSE). Commercial use is allowed. Distributed derivative versions must remain under `GPL-3.0-only` and provide their corresponding source
+
+Copyright © 2026 x-quark contributors
 
 ## Publishing
 

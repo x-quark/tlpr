@@ -70,7 +70,7 @@ Les fichiers suivants sont produits :
 - `release/tlpr-v0.1.0.zip`
 - `release/tlpr-v0.1.0.zip.sha256`
 
-Le ZIP contient directement `manifest.json` à sa racine et peut être chargé sur le Chrome Web Store
+Le ZIP contient directement `manifest.json`, la licence GPL et un lien vers le code source de la version à sa racine. Il peut être chargé sur le Chrome Web Store
 
 ## Développement
 
@@ -102,6 +102,12 @@ tests/                   Tests de parité fonctionnelle
 ## Périmètre actuel
 
 La version initiale reproduit volontairement le comportement du userscript. Elle ne propose ni page de réglages, ni synchronisation entre appareils, ni prise en charge de GitHub Enterprise. Des fixtures automatisées couvrent des structures représentatives historiques, React et de revue, ainsi que le remplacement de nœuds DOM, le mode édition initial et la navigation SPA entre pages. Une évolution de GitHub hors de ces fixtures peut nécessiter une mise à jour
+
+## Licence
+
+TL;PR est distribué sous la [GNU General Public License v3.0 uniquement](./LICENSE). L’usage commercial est autorisé. Les versions dérivées distribuées doivent rester sous `GPL-3.0-only` et fournir leur code source correspondant
+
+Copyright © 2026 contributeurs de x-quark
 
 ## Publication
 

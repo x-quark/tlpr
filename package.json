@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "A focused Chrome extension for readable GitHub pull request and issue conversations",
   "private": true,
+  "license": "GPL-3.0-only",
   "type": "module",
   "packageManager": "pnpm@10.33.2",
   "engines": {
