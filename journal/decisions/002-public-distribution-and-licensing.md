@@ -8,7 +8,7 @@
 
 TL;PR doit être consultable publiquement afin de rendre son comportement auditable et de fournir au Chrome Web Store une politique de confidentialité accessible sans authentification
 
-Le dépôt ne contient ni secret, ni code Atlas Labs, ni service distant. L’extension est une application autonome, pas une bibliothèque destinée à être intégrée dans un produit tiers
+Le dépôt ne contient ni secret ni service distant. L’extension est une application autonome, pas une bibliothèque destinée à être intégrée dans un produit tiers
 
 La licence doit autoriser l’usage et les contributions tout en empêchant la redistribution de dérivés propriétaires sans publication du code source correspondant
 
