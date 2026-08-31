@@ -13,6 +13,8 @@ La commande produit et valide :
 - `release/tlpr-v0.1.0.zip.sha256`
 - les icônes PNG 16, 32, 48 et 128 dans le paquet
 - les traductions anglaise et française
+- le texte complet de la licence `GPL-3.0-only`
+- une notice `SOURCE.md` vers le code source de la version distribuée
 - le manifeste MV3 sans permission Chrome nommée
 
 ## Visuels disponibles
@@ -46,7 +48,7 @@ Chrome n’accepte pas les SVG comme icônes du manifeste. Les SVG restent les s
 >
 > Long human comments collapse automatically and remain expandable with one click. When a timeline becomes crowded, TL;PR keeps the first two and last three items visible while folding the middle behind a compact summary. Dedicated controls can collapse or expand every human comment on the page
 >
-> Bot comments and comments being edited are left untouched. Display preferences remain on the device and are stored per GitHub page. TL;PR contains no analytics, telemetry, remote service, or remotely hosted code
+> Bot comments and comments being edited are left untouched. TL;PR processes rendered GitHub conversation content and page paths only on the user’s device. Display preferences remain on the device and are stored per GitHub page. TL;PR never transmits this information and contains no analytics, telemetry, remote service, or remotely hosted code
 
 ### Français
 
@@ -64,21 +66,43 @@ Chrome n’accepte pas les SVG comme icônes du manifeste. Les SVG restent les s
 >
 > Les commentaires humains longs sont automatiquement repliés et restent dépliables en un clic. Lorsqu’une chronologie devient chargée, TL;PR conserve les deux premiers et les trois derniers éléments visibles et replie le milieu derrière un résumé compact. Des contrôles dédiés permettent de replier ou déplier tous les commentaires humains de la page
 >
-> Les commentaires de bots et les commentaires en cours d’édition restent intacts. Les préférences d’affichage restent sur l’appareil et sont stockées par page GitHub. TL;PR ne contient ni analyse d’usage, ni télémétrie, ni service distant, ni code hébergé à distance
+> Les commentaires de bots et les commentaires en cours d’édition restent intacts. TL;PR traite le contenu des conversations GitHub affichées et les chemins des pages uniquement sur l’appareil de l’utilisateur. Les préférences d’affichage restent sur l’appareil et sont stockées par page GitHub. TL;PR ne transmet jamais ces informations et ne contient ni analyse d’usage, ni télémétrie, ni service distant, ni code hébergé à distance
 
 ## Déclarations de confidentialité
 
-- Finalité unique : amélioration de la lisibilité des conversations GitHub
-- Données collectées : aucune
+- Finalité unique : `TL;PR improves the readability of GitHub pull request and issue conversations by locally collapsing long human comments and the middle of crowded timelines.`
+- Données traitées localement : `Website content` et `Web history`
+- Données transmises hors de l’appareil : aucune
 - Données vendues ou partagées : aucune
 - Analyse d’usage : aucune
 - Code distant : aucun
 - Requêtes réseau propres à l’extension : aucune
 - Permission nommée : aucune
 - Accès hôte : pages de pull requests et d’issues sur `github.com`
-- Politique : [`PRIVACY.md`](../PRIVACY.md)
+- Code distant : sélectionner **No, I am not using remote code**
+- Politique publique : `https://github.com/x-quark/tlpr/blob/main/PRIVACY.md`
 
-Le compte éditeur doit fournir une URL publiquement accessible vers la politique avant la soumission. Le dépôt est actuellement privé, donc le fichier doit être exposé sur une URL publique contrôlée par x-quark avant publication
+Le dépôt et la politique de confidentialité sont accessibles publiquement sans authentification
+
+## Configuration de la fiche
+
+- Langue principale : `English`
+- Catégorie principale : `Developer Tools`
+- Nom de l’éditeur : `x-quark`
+- Adresse du compte et de contact : `publisher@x-quark.com`
+- Visibilité : publique
+- Régions : toutes les régions disponibles
+- Contenu mature : non
+- Publication après examen : automatique, sans publication différée
+- URL de la page d’accueil : `https://github.com/x-quark/tlpr`
+- URL d’assistance : `https://github.com/x-quark/tlpr/issues`
+- URL officielle : laisser vide tant qu’aucun domaine x-quark n’est vérifié dans Google Search Console
+
+## Instructions de test pour l’équipe Chrome
+
+> No credentials are required. Install the extension, then open https://github.com/microsoft/vscode/pull/226735. Long human comments should collapse automatically. The middle of the timeline should collapse while the first two and last three items remain visible. Bot comments remain unchanged. Use the injected controls to expand and collapse comments and timeline items.
+
+Le compte éditeur doit être enregistré et utiliser un compte Google protégé par la validation en deux étapes avant de publier ou mettre à jour l’extension
 
 ## Justification de l’accès au site
 
@@ -94,9 +118,11 @@ Le compte éditeur doit fournir une URL publiquement accessible vers la politiqu
 6. Ajouter les textes anglais et français
 7. Ajouter l’icône, la petite vignette, la bannière et la capture réelle
 8. Déclarer l’accès à `github.com` avec la justification ci-dessus
-9. Déclarer qu’aucune donnée utilisateur n’est collectée ou transmise
-10. Fournir l’URL publique de la politique de confidentialité
-11. Soumettre la version pour examen
+9. Sélectionner les catégories `Website content` et `Web history`, toutes deux traitées uniquement sur l’appareil
+10. Certifier les déclarations d’usage limité demandées par Chrome
+11. Fournir l’URL publique de la politique de confidentialité
+12. Copier les instructions de test ci-dessus sans fournir d’identifiants
+13. Soumettre la version pour examen
 
 ## Vérification manuelle avant soumission
 
@@ -115,3 +141,7 @@ Le compte éditeur doit fournir une URL publiquement accessible vers la politiqu
 - [Icônes d’extension](https://developer.chrome.com/docs/extensions/reference/manifest/icons)
 - [Visuels du Chrome Web Store](https://developer.chrome.com/docs/webstore/images)
 - [Sécurité Manifest V3](https://developer.chrome.com/docs/extensions/develop/migrate/improve-security)
+- [Publication d’un élément](https://developer.chrome.com/docs/webstore/register/)
+- [Champs de confidentialité](https://developer.chrome.com/docs/webstore/cws-dashboard-privacy)
+- [Informations de la fiche](https://developer.chrome.com/docs/webstore/publish)
+- [API Chrome Web Store et validation en deux étapes](https://developer.chrome.com/docs/webstore/using-api)

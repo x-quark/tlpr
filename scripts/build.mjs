@@ -51,6 +51,11 @@ await copyFile(
 await cp(path.join(root, 'src', '_locales'), path.join(outputDirectory, '_locales'), {
   recursive: true,
 });
+await copyFile(path.join(root, 'LICENSE'), path.join(outputDirectory, 'LICENSE'));
+await writeFile(
+  path.join(outputDirectory, 'SOURCE.md'),
+  `# Source Code\n\nThe complete corresponding source for TL;PR ${packageJson.version} is available at https://github.com/x-quark/tlpr/tree/v${packageJson.version}.\n`,
+);
 await mkdir(path.join(outputDirectory, 'icons'), { recursive: true });
 
 for (const size of [16, 32, 48, 128]) {

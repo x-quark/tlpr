@@ -4,13 +4,26 @@
 
 Effective date: 2026-08-30
 
+Last updated: 2026-08-31
+
 ## Scope
 
 This policy applies to the TL;PR Chrome extension published by x-quark
 
-## Data collection
+## Data handling
 
-TL;PR does not collect, transmit, sell, share, or remotely process personal data, browsing history, GitHub content, authentication information, or usage analytics
+TL;PR handles two Chrome Web Store user-data categories locally on the user’s device:
+
+- **Website content:** rendered GitHub comment and timeline elements are read to decide what to collapse and to provide the visible controls. Their content is not retained
+- **Web history:** the path of each GitHub pull request or issue is stored locally as the key for its interface preferences
+
+TL;PR does not transmit, sell, share, or remotely process this information. It does not collect authentication information, personal data for profiling, or usage analytics
+
+## Purpose limitation
+
+TL;PR uses rendered GitHub conversation content only on the user’s device and only to provide its single purpose: improving readability through local collapse and expand controls. It does not use that content for advertising, analytics, profiling, or any unrelated purpose
+
+TL;PR’s use of information from GitHub pages complies with the [Chrome Web Store User Data Policy](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq), including its Limited Use requirements
 
 ## Local storage
 
@@ -42,4 +55,4 @@ Material changes to this policy will be published in this repository with the co
 
 ## Contact
 
-Questions and privacy requests can be opened through the [TL;PR issue tracker](https://github.com/x-quark/tlpr/issues)
+Questions and privacy requests can be sent to [publisher@x-quark.com](mailto:publisher@x-quark.com) or opened through the [TL;PR issue tracker](https://github.com/x-quark/tlpr/issues)

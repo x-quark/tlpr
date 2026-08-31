@@ -45,6 +45,8 @@ assert(
 
 const requiredEntries = [
   'manifest.json',
+  'LICENSE',
+  'SOURCE.md',
   'content.js',
   'content.css',
   '_locales/en/messages.json',
@@ -58,6 +60,16 @@ const actualEntries = Object.keys(archiveEntries).sort();
 assert(
   JSON.stringify(actualEntries) === JSON.stringify([...requiredEntries].sort()),
   `Archive entries differ from the allowlist: ${actualEntries.join(', ')}`,
+);
+assert(
+  new TextDecoder().decode(archiveEntries.LICENSE) ===
+    (await readFile(path.join(root, 'LICENSE'), 'utf8')),
+  'Packaged license must match the repository license',
+);
+assert(
+  new TextDecoder().decode(archiveEntries['SOURCE.md']) ===
+    `# Source Code\n\nThe complete corresponding source for TL;PR ${packageJson.version} is available at https://github.com/x-quark/tlpr/tree/v${packageJson.version}.\n`,
+  'Packaged source notice must link to the matching release tag',
 );
 
 assert(manifest.content_scripts?.length === 1, 'Manifest must contain exactly one content script');
