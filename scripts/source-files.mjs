@@ -47,5 +47,9 @@ export async function collectSourceFiles(root) {
 }
 
 export function sourceNotice(version) {
-  return `# Source Code\n\nThe complete corresponding source for TL;PR ${version} is included in the source/ directory of this package, including its GPL-3.0-only license, build scripts, dependency lockfile, tests, and artwork.\n\nTo rebuild, extract source/ to a separate directory, install Node.js 22 or newer and pnpm 10.33.2, then run pnpm install --frozen-lockfile followed by pnpm check.\n\nProject homepage: https://github.com/x-quark/tlpr. This package does not claim that a matching Git tag has been published.\n`;
+  return `# Source Code\n\nThe complete corresponding source for TL;PR ${version} is included in the source/ directory of this package, including its GPL-3.0-only license, build scripts, dependency lockfile, tests, and artwork.\n\nChrome Web Store permits only one manifest.json in a package. The source manifest is therefore stored byte-for-byte as source/src/manifest.json.txt.\n\nTo rebuild, extract source/ to a separate directory and rename src/manifest.json.txt to src/manifest.json. Install Node.js 22 or newer and pnpm 10.33.2, then run pnpm install --frozen-lockfile followed by pnpm check.\n\nProject homepage: https://github.com/x-quark/tlpr. This package does not claim that a matching Git tag has been published.\n`;
+}
+
+export function packagedSourcePath(relativePath) {
+  return `source/${relativePath === 'src/manifest.json' ? `${relativePath}.txt` : relativePath}`;
 }

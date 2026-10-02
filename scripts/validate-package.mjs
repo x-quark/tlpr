@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { unzipSync } from 'fflate';
 import sharp from 'sharp';
 
-import { collectSourceFiles, sourceNotice } from './source-files.mjs';
+import { collectSourceFiles, packagedSourcePath, sourceNotice } from './source-files.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const packageJson = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
@@ -18,6 +18,12 @@ const archiveEntries = unzipSync(new Uint8Array(archive));
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
+
+assert(
+  Object.keys(archiveEntries).filter((entry) => path.posix.basename(entry) === 'manifest.json')
+    .length === 1,
+  'Chrome Web Store packages must contain only the root manifest.json',
+);
 
 async function validatePng(relativePath, width, height, requireOpaque = false) {
   const metadata = await sharp(path.join(root, relativePath)).metadata();
@@ -71,7 +77,7 @@ const requiredEntries = [
   'icons/icon-32.png',
   'icons/icon-48.png',
   'icons/icon-128.png',
-  ...sourceFiles.map((relativePath) => `source/${relativePath}`),
+  ...sourceFiles.map(packagedSourcePath),
 ];
 const actualEntries = Object.keys(archiveEntries).sort();
 assert(
@@ -90,7 +96,7 @@ assert(
 
 for (const relativePath of sourceFiles) {
   assert(
-    Buffer.from(archiveEntries[`source/${relativePath}`]).equals(
+    Buffer.from(archiveEntries[packagedSourcePath(relativePath)]).equals(
       await readFile(path.join(root, relativePath)),
     ),
     `Bundled source must match the build input exactly: ${relativePath}`,
