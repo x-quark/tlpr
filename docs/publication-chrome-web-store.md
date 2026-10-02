@@ -9,13 +9,13 @@ pnpm check
 
 La commande produit et valide :
 
-- `release/tlpr-v0.1.0.zip`
-- `release/tlpr-v0.1.0.zip.sha256`
+- `release/tlpr-v0.2.0.zip`
+- `release/tlpr-v0.2.0.zip.sha256`
 - les icônes PNG 16, 32, 48 et 128 dans le paquet
 - les traductions anglaise et française
 - le texte complet de la licence `GPL-3.0-only`
-- une notice `SOURCE.md` vers le code source de la version distribuée
-- le manifeste MV3 sans permission Chrome nommée
+- une notice `SOURCE.md` et les sources correspondantes complètes dans `source/`
+- le manifeste MV3 avec uniquement la permission `storage`, justifiée par ADR 003
 
 ## Visuels disponibles
 
@@ -77,7 +77,7 @@ Chrome n’accepte pas les SVG comme icônes du manifeste. Les SVG restent les s
 - Analyse d’usage : aucune
 - Code distant : aucun
 - Requêtes réseau propres à l’extension : aucune
-- Permission nommée : aucune
+- Permission nommée : `storage`, uniquement pour les cinq préférences locales de la fenêtre de réglages (activation, langue, animations, couleurs d’état et assistant optionnel)
 - Accès hôte : pages de pull requests et d’issues sur `github.com`
 - Code distant : sélectionner **No, I am not using remote code**
 - Politique publique : `https://github.com/x-quark/tlpr/blob/main/PRIVACY.md`
@@ -110,11 +110,11 @@ Le compte éditeur doit être enregistré et utiliser un compte Google protégé
 
 ## Procédure de soumission
 
-1. Exécuter `pnpm check` sur le commit à publier
-2. Vérifier le checksum du ZIP
-3. Créer le tag `v<version>` après merge sur `main`
-4. Attendre la GitHub Release produite par `.github/workflows/release.yml`
-5. Charger le ZIP de la release dans le tableau de bord Chrome Web Store
+1. Incrémenter la version dans `package.json`, puis exécuter `pnpm check` localement
+2. Vérifier le checksum du ZIP et les sources incluses, identiques aux entrées de construction
+3. Ne déclencher aucune GitHub Action : pas de push sur `main`, de PR ni de tag tant qu’un chemin de publication sans CI n’est pas validé
+4. Vérifier les permissions, les interactions réelles et la politique de confidentialité publique à jour
+5. Ouvrir l’élément existant `ejclfjeilcfnjdocgnmloilcaocelgnp`, onglet Package, puis charger `release/tlpr-v0.2.0.zip` avec « Importer un nouveau package » ; ne pas créer un nouvel élément
 6. Ajouter les textes anglais et français
 7. Ajouter l’icône, la petite vignette, la bannière et la capture réelle
 8. Déclarer l’accès à `github.com` avec la justification ci-dessus

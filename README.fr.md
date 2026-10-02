@@ -15,7 +15,12 @@ Les longues revues GitHub deviennent difficiles à parcourir quand les réponses
 - Replie automatiquement les commentaires humains de plus de `140px`
 - Conserve les deux premiers et les trois derniers éléments d’une longue chronologie
 - Déplie le milieu masqué à la demande
-- Ajoute des contrôles pour replier ou déplier tous les commentaires humains
+- Garde les commandes globales de repli et de dépliage accessibles pendant le défilement
+- Distingue les états par des accents, des chevrons et des libellés accessibles
+- Propose des réglages d’activation, de langue, d’animations et de couleurs d’état
+- Inclut un assistant optionnel de préparation et de copie du message de fusion, désactivé par défaut
+- Conserve le focus clavier sur les commandes de chronologie et révèle le contenu ciblé
+- Révèle temporairement les commentaires liés sans remplacer les préférences de repli enregistrées
 - Conserve l’état par page avec la clé existante `gh-pr-comment-collapse:v3`
 - Ignore les commentaires de bots et les commentaires en cours d’édition
 - Fonctionne sur les pull requests et les issues GitHub
@@ -25,12 +30,12 @@ Les longues revues GitHub deviennent difficiles à parcourir quand les réponses
 
 TL;PR ne collecte et ne transmet aucune donnée. Il ne contient ni télémétrie, ni analyse d’usage, ni service distant, ni code hébergé à distance
 
-L’extension ne demande aucune permission Chrome nommée. Son script de contenu est limité aux URL suivantes :
+L’extension demande uniquement la permission `storage` pour mémoriser localement les réglages de la barre d’outils. Elle ne possède aucun processus d’arrière-plan et ne demande aucune permission sur les onglets, le presse-papiers ou des sites supplémentaires. Voir [ADR 003](./journal/decisions/003-local-reading-settings.md). Son script de contenu est limité aux URL suivantes :
 
 - `https://github.com/*/*/pull/*`
 - `https://github.com/*/*/issues/*`
 
-Les préférences d’affichage restent dans le stockage local du site GitHub afin de préserver la compatibilité avec le userscript d’origine. Consultez la [politique de confidentialité](./PRIVACY.fr.md) pour le contrat complet
+Les préférences de repli par page restent dans le stockage local du site GitHub afin de préserver la compatibilité avec le userscript d’origine. L’activation, la langue, les animations, les couleurs d’état et l’assistant optionnel restent dans `chrome.storage.local`. Consultez la [politique de confidentialité](./PRIVACY.fr.md) pour le contrat complet
 
 ## Installation locale
 
@@ -67,10 +72,10 @@ pnpm validate:package
 
 Les fichiers suivants sont produits :
 
-- `release/tlpr-v0.1.0.zip`
-- `release/tlpr-v0.1.0.zip.sha256`
+- `release/tlpr-v0.2.0.zip`
+- `release/tlpr-v0.2.0.zip.sha256`
 
-Le ZIP contient directement `manifest.json`, la licence GPL et un lien vers le code source de la version à sa racine. Il peut être chargé sur le Chrome Web Store
+Le ZIP contient directement `manifest.json`, la licence GPL et une notice `SOURCE.md` à sa racine. Le code source correspondant complet est inclus dans `source/`, avec les scripts de construction et le fichier de verrouillage des dépendances. Aucun tag Git publié n’est nécessaire pour obtenir ces sources
 
 ## Développement
 
@@ -101,7 +106,7 @@ tests/                   Tests de parité fonctionnelle
 
 ## Périmètre actuel
 
-La version initiale reproduit volontairement le comportement du userscript. Elle ne propose ni page de réglages, ni synchronisation entre appareils, ni prise en charge de GitHub Enterprise. Des fixtures automatisées couvrent des structures représentatives historiques, React et de revue, ainsi que le remplacement de nœuds DOM, le mode édition initial et la navigation SPA entre pages. Une évolution de GitHub hors de ces fixtures peut nécessiter une mise à jour
+TL;PR conserve les règles de repli par défaut et le format de stockage du userscript tout en affinant ses commandes de lecture. La fenêtre de réglages applique les changements aux conversations ouvertes sans rechargement. Il ne propose ni synchronisation entre appareils, ni prise en charge de GitHub Enterprise. Des fixtures automatisées couvrent des structures représentatives historiques, React et de revue, ainsi que le remplacement de nœuds DOM, le mode édition, la navigation SPA entre pages, le focus clavier, les contrôles intégrés, la sélection de texte et les liens vers les commentaires. L’assistant optionnel repère un titre affiché « 🧾 Merge commit body » et un bloc de code, présente le titre de la pull request suivi de ce texte, puis copie uniquement après un clic explicite. Il ne peut pas vérifier un marqueur Markdown masqué depuis le HTML affiché, ne récupère aucune donnée d’API privée et ne remplit ni ne soumet de formulaire de fusion. Une évolution de GitHub hors de ces fixtures peut nécessiter une mise à jour
 
 ## Licence
 

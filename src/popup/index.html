@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TL;PR</title>
+    <link rel="stylesheet" href="./popup.css" />
+    <script src="./popup.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <div class="brand-line">
+          <span class="wordmark" aria-label="TL;PR">TL<span>;</span>PR</span>
+          <span class="activity" data-activity></span>
+        </div>
+        <p class="eyebrow" data-i18n="popupEyebrow"></p>
+        <h1 data-i18n="popupHeading"></h1>
+        <p class="intro" data-i18n="popupIntro"></p>
+      </header>
+      <form aria-busy="true">
+        <fieldset disabled>
+          <legend class="visually-hidden" data-i18n="popupTitle"></legend>
+          <div class="setting-row primary-setting">
+            <div class="setting-copy">
+              <label for="enabled" data-i18n="popupEnabled"></label>
+              <p id="enabled-description" data-i18n="popupEnabledDescription"></p>
+            </div>
+            <input
+              id="enabled"
+              name="enabled"
+              type="checkbox"
+              role="switch"
+              aria-describedby="enabled-description"
+            />
+          </div>
+          <section aria-labelledby="preferences-title">
+            <h2 id="preferences-title" data-i18n="popupPreferences"></h2>
+            <div class="setting-row language-row">
+              <div class="setting-copy">
+                <span id="language-label" class="setting-label" data-i18n="popupLanguage"></span>
+                <p id="language-description" data-i18n="popupLanguageDescription"></p>
+              </div>
+              <div
+                class="language-segments"
+                role="radiogroup"
+                aria-labelledby="language-label"
+                aria-describedby="language-description"
+              >
+                <input
+                  class="language-radio"
+                  id="language-auto"
+                  name="language"
+                  type="radio"
+                  value="auto"
+                />
+                <label for="language-auto">
+                  <span aria-hidden="true" data-i18n="popupLanguageAutoShort"></span>
+                  <span class="visually-hidden" data-i18n="popupLanguageAuto"></span>
+                </label>
+                <input
+                  class="language-radio"
+                  id="language-fr"
+                  name="language"
+                  type="radio"
+                  value="fr"
+                />
+                <label for="language-fr" data-i18n="popupLanguageFrench"></label>
+                <input
+                  class="language-radio"
+                  id="language-en"
+                  name="language"
+                  type="radio"
+                  value="en"
+                />
+                <label for="language-en" data-i18n="popupLanguageEnglish"></label>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div class="setting-copy">
+                <label for="animations" data-i18n="popupAnimations"></label>
+                <p id="animations-description" data-i18n="popupAnimationsDescription"></p>
+              </div>
+              <input
+                id="animations"
+                name="animations"
+                type="checkbox"
+                role="switch"
+                aria-describedby="animations-description"
+              />
+            </div>
+            <div class="setting-row">
+              <div class="setting-copy">
+                <label for="stateColors" data-i18n="popupStateColors"></label>
+                <p id="colors-description" data-i18n="popupStateColorsDescription"></p>
+              </div>
+              <input
+                id="stateColors"
+                name="stateColors"
+                type="checkbox"
+                role="switch"
+                aria-describedby="colors-description"
+              />
+            </div>
+          </section>
+          <section class="helper-section" aria-labelledby="helper-title">
+            <h2 id="helper-title" data-i18n="popupHelperSection"></h2>
+            <div class="setting-row">
+              <div class="setting-copy">
+                <label for="mergeHelper" data-i18n="popupMergeHelper"></label>
+                <span class="optional" data-i18n="popupOptional"></span>
+                <p id="helper-description" data-i18n="popupMergeHelperDescription"></p>
+              </div>
+              <input
+                id="mergeHelper"
+                name="mergeHelper"
+                type="checkbox"
+                role="switch"
+                aria-describedby="helper-description"
+              />
+            </div>
+          </section>
+        </fieldset>
+      </form>
+      <footer>
+        <p class="feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+        <p class="error" role="alert" aria-atomic="true"></p>
+        <button class="retry" type="button" data-retry data-i18n="popupRetry" hidden></button>
+        <p class="privacy" data-i18n="popupPrivacy"></p>
+      </footer>
+    </main>
+  </body>
+</html>

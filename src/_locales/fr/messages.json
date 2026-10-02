@@ -6,7 +6,7 @@
     "message": "Rend les longues conversations des pull requests et issues GitHub plus faciles à lire."
   },
   "actionTitle": {
-    "message": "TL;PR est actif sur les pull requests et issues GitHub"
+    "message": "Réglages de lecture TL;PR"
   },
   "collapse": {
     "message": "Replier"
@@ -21,13 +21,18 @@
     "message": "Tout déplier"
   },
   "show": {
-    "message": "Afficher"
+    "message": "Afficher $COUNT$ de plus",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
   },
   "hide": {
-    "message": "Masquer"
+    "message": "Masquer le milieu"
   },
   "timelineHiddenOne": {
-    "message": "$COUNT$ élément masqué au milieu de la conversation",
+    "message": "$COUNT$ élément masqué",
     "placeholders": {
       "count": {
         "content": "$1"
@@ -35,11 +40,162 @@
     }
   },
   "timelineHiddenMany": {
-    "message": "$COUNT$ éléments masqués au milieu de la conversation",
+    "message": "$COUNT$ éléments masqués",
     "placeholders": {
       "count": {
         "content": "$1"
       }
     }
+  },
+  "timelineShownOne": {
+    "message": "$COUNT$ élément affiché",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "timelineShownMany": {
+    "message": "$COUNT$ éléments affichés",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "conversationControls": {
+    "message": "Commandes de lecture de la conversation"
+  },
+  "popupTitle": {
+    "message": "Réglages de lecture TL;PR"
+  },
+  "popupEyebrow": {
+    "message": "GITHUB, SANS LE BRUIT"
+  },
+  "popupHeading": {
+    "message": "Place à la lecture."
+  },
+  "popupIntro": {
+    "message": "Vos préférences pour les pull requests et les issues."
+  },
+  "popupEnabled": {
+    "message": "Aide à la lecture"
+  },
+  "popupEnabledDescription": {
+    "message": "Repliez les longues conversations pour garder le fil."
+  },
+  "popupOn": {
+    "message": "Activée"
+  },
+  "popupOff": {
+    "message": "En pause"
+  },
+  "popupPreferences": {
+    "message": "À votre façon"
+  },
+  "popupLanguage": {
+    "message": "Langue"
+  },
+  "popupLanguageDescription": {
+    "message": "Pour cette fenêtre et les commandes de lecture."
+  },
+  "popupLanguageAuto": {
+    "message": "Langue du navigateur"
+  },
+  "popupLanguageEnglish": {
+    "message": "English"
+  },
+  "popupLanguageFrench": {
+    "message": "Français"
+  },
+  "popupAnimations": {
+    "message": "Animations discrètes"
+  },
+  "popupAnimationsDescription": {
+    "message": "Des transitions douces, adaptées au mouvement réduit."
+  },
+  "popupStateColors": {
+    "message": "Couleurs des états"
+  },
+  "popupStateColorsDescription": {
+    "message": "Distinguez les contenus repliés et ouverts en couleur."
+  },
+  "popupHelperSection": {
+    "message": "Un petit plus"
+  },
+  "popupMergeHelper": {
+    "message": "Aide au message de fusion"
+  },
+  "popupMergeHelperDescription": {
+    "message": "Prépare un texte à copier à votre demande. Ne fusionne jamais de pull request."
+  },
+  "popupOptional": {
+    "message": "Facultatif"
+  },
+  "popupPrivacy": {
+    "message": "Enregistré dans ce navigateur. Aucune donnée envoyée."
+  },
+  "popupLoading": {
+    "message": "Chargement de vos préférences…"
+  },
+  "popupSaving": {
+    "message": "Enregistrement…"
+  },
+  "popupSaved": {
+    "message": "Préférences enregistrées"
+  },
+  "popupLoadError": {
+    "message": "Impossible de charger vos préférences. Réessayez."
+  },
+  "popupSaveError": {
+    "message": "Enregistrement impossible. Vos préférences précédentes sont conservées. Réessayez."
+  },
+  "popupRetry": {
+    "message": "Réessayer"
+  },
+  "mergeOpen": {
+    "message": "Préparer le message"
+  },
+  "mergeTitle": {
+    "message": "Préparer le message de fusion"
+  },
+  "mergeDetectedNotice": {
+    "message": "Modèle repéré grâce au titre visible du commentaire. Le marqueur masqué ne peut pas être vérifié ici. Vérifiez le texte avant de le copier. Aucune fusion ne sera effectuée."
+  },
+  "mergeCandidateLabel": {
+    "message": "Commentaire à utiliser"
+  },
+  "mergeCandidatePlaceholder": {
+    "message": "Choisir un commentaire…"
+  },
+  "mergeCandidateOption": {
+    "message": "Commentaire {count}"
+  },
+  "mergePreviewLabel": {
+    "message": "Titre de la pull request et corps du message"
+  },
+  "mergeMissingTitle": {
+    "message": "Le titre de cette pull request est introuvable. Aucun texte n’a été préparé."
+  },
+  "mergeNoCandidates": {
+    "message": "Aucun commentaire avec le titre « Merge commit body » et un bloc de code unique n’a été trouvé."
+  },
+  "mergeCopy": {
+    "message": "Copier le message"
+  },
+  "mergeCopying": {
+    "message": "Copie en cours…"
+  },
+  "mergeCopied": {
+    "message": "Message copié"
+  },
+  "mergeCopyError": {
+    "message": "La copie automatique est bloquée. Sélectionnez le texte ci-dessus et copiez-le manuellement."
+  },
+  "mergeClose": {
+    "message": "Fermer"
+  },
+  "popupLanguageAutoShort": {
+    "message": "Auto"
   }
 }

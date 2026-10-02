@@ -1,7 +1,8 @@
+const svg = (paths: string, className = ''): string =>
+  `<svg class="${className}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+
 export const icons = {
-  down: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.427 9.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 9H4.604a.25.25 0 0 0-.177.427Z"></path><path d="M8 2.75a.75.75 0 0 1 .75.75v7.25a.75.75 0 0 1-1.5 0V3.5A.75.75 0 0 1 8 2.75Z"></path></svg>',
-  up: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.427 6.573 3.396-3.396a.25.25 0 0 1 .354 0l3.396 3.396A.25.25 0 0 1 11.396 7H4.604a.25.25 0 0 1-.177-.427Z"></path><path d="M8 13.25a.75.75 0 0 1-.75-.75V5.25a.75.75 0 0 1 1.5 0v7.25a.75.75 0 0 1-.75.75Z"></path></svg>',
-  fold: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.75 2a.75.75 0 0 0 0 1.5h10.5a.75.75 0 0 0 0-1.5H2.75Zm0 10.5a.75.75 0 0 0 0 1.5h10.5a.75.75 0 0 0 0-1.5H2.75ZM4 6.75A.75.75 0 0 1 4.75 6h6.5a.75.75 0 0 1 0 1.5h-6.5A.75.75 0 0 1 4 6.75Zm0 3A.75.75 0 0 1 4.75 9h6.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 9.75Z"></path></svg>',
-  unfold:
-    '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.75 2a.75.75 0 0 0 0 1.5h10.5a.75.75 0 0 0 0-1.5H2.75Zm0 10.5a.75.75 0 0 0 0 1.5h10.5a.75.75 0 0 0 0-1.5H2.75ZM8 5.25a.75.75 0 0 1 .75.75v1.25H10a.75.75 0 0 1 0 1.5H8.75V10a.75.75 0 0 1-1.5 0V8.75H6a.75.75 0 0 1 0-1.5h1.25V6A.75.75 0 0 1 8 5.25Z"></path></svg>',
+  down: svg('<path d="m4.5 6.25 3.5 3.5 3.5-3.5"/>', 'tlpr-chevron'),
+  fold: svg('<path d="M8 1v5m-2.5-2.5L8 6l2.5-2.5M8 15v-5m-2.5 2.5L8 10l2.5 2.5"/>'),
+  unfold: svg('<path d="M8 6V1M5.5 3.5 8 1l2.5 2.5M8 10v5m-2.5-2.5L8 15l2.5-2.5"/>'),
 } as const;

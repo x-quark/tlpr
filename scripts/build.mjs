@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 import { build } from 'vite';
 
+import { collectSourceFiles, sourceNotice } from './source-files.mjs';
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outputDirectory = path.join(root, 'dist');
 const packageJson = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
@@ -38,6 +40,30 @@ await build({
   },
 });
 
+await build({
+  configFile: false,
+  root,
+  build: {
+    emptyOutDir: false,
+    lib: {
+      entry: path.join(root, 'src', 'popup', 'index.ts'),
+      formats: ['iife'],
+      name: 'TlprPopup',
+      fileName: () => 'popup.js',
+    },
+    minify: 'esbuild',
+    sourcemap: false,
+    target: 'chrome109',
+  },
+});
+
+for (const [source, destination] of [
+  ['index.html', 'popup.html'],
+  ['popup.css', 'popup.css'],
+]) {
+  await copyFile(path.join(root, 'src', 'popup', source), path.join(outputDirectory, destination));
+}
+
 const manifest = JSON.parse(await readFile(path.join(root, 'src', 'manifest.json'), 'utf8'));
 manifest.version = packageJson.version;
 await writeFile(
@@ -52,10 +78,7 @@ await cp(path.join(root, 'src', '_locales'), path.join(outputDirectory, '_locale
   recursive: true,
 });
 await copyFile(path.join(root, 'LICENSE'), path.join(outputDirectory, 'LICENSE'));
-await writeFile(
-  path.join(outputDirectory, 'SOURCE.md'),
-  `# Source Code\n\nThe complete corresponding source for TL;PR ${packageJson.version} is available at https://github.com/x-quark/tlpr/tree/v${packageJson.version}.\n`,
-);
+await writeFile(path.join(outputDirectory, 'SOURCE.md'), sourceNotice(packageJson.version));
 await mkdir(path.join(outputDirectory, 'icons'), { recursive: true });
 
 for (const size of [16, 32, 48, 128]) {
@@ -63,6 +86,12 @@ for (const size of [16, 32, 48, 128]) {
     path.join(root, 'assets', 'generated', `icon-${size}.png`),
     path.join(outputDirectory, 'icons', `icon-${size}.png`),
   );
+}
+
+for (const relativePath of await collectSourceFiles(root)) {
+  const destination = path.join(outputDirectory, 'source', relativePath);
+  await mkdir(path.dirname(destination), { recursive: true });
+  await copyFile(path.join(root, relativePath), destination);
 }
 
 console.log(`Built TL;PR ${packageJson.version} in dist`);

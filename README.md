@@ -15,7 +15,12 @@ Long GitHub reviews become difficult to scan when replies, automated events, and
 - Automatically collapses human comments taller than `140px`
 - Keeps the first two and last three items visible in long timelines
 - Reveals the folded middle on demand
-- Adds controls to collapse or expand every human comment
+- Keeps concise global expand/collapse controls within reach while scrolling
+- Shows folded/expanded state with accents, chevrons, and accessible labels
+- Offers toolbar settings for enablement, language, animations, and state colors
+- Includes an optional, off-by-default merge-text preview/copy helper
+- Keeps keyboard focus on timeline controls and reveals focused comment content
+- Temporarily reveals linked comments without overwriting saved folding preferences
 - Persists per-page state under the existing `gh-pr-comment-collapse:v3` key
 - Ignores bot comments and comments being edited
 - Runs on GitHub pull requests and issues
@@ -25,12 +30,12 @@ Long GitHub reviews become difficult to scan when replies, automated events, and
 
 TL;PR does not collect or transmit data. It includes no telemetry, analytics, remote service, or remotely hosted code
 
-The extension requests no named Chrome permission. Its content script is limited to:
+The extension requests only the `storage` permission to remember toolbar settings locally. It has no background worker and requests no tabs, clipboard, or additional host permission. See [ADR 003](./journal/decisions/003-local-reading-settings.md). Its content script is limited to:
 
 - `https://github.com/*/*/pull/*`
 - `https://github.com/*/*/issues/*`
 
-Display preferences remain in GitHub site storage to preserve compatibility with the original userscript. Read the [privacy policy](./PRIVACY.md) for the complete contract
+Per-page folding preferences remain in GitHub site storage to preserve compatibility with the original userscript. Enablement, language, animation, state-color, and optional helper settings stay in `chrome.storage.local`. Read the [privacy policy](./PRIVACY.md) for the complete contract
 
 ## Install locally
 
@@ -67,10 +72,10 @@ pnpm validate:package
 
 The commands produce:
 
-- `release/tlpr-v0.1.0.zip`
-- `release/tlpr-v0.1.0.zip.sha256`
+- `release/tlpr-v0.2.0.zip`
+- `release/tlpr-v0.2.0.zip.sha256`
 
-The ZIP contains `manifest.json`, the GPL license, and a link to the corresponding release source at its root. It is ready for Chrome Web Store upload
+The ZIP contains `manifest.json`, the GPL license, and a `SOURCE.md` notice at its root. The complete corresponding source is bundled under `source/`, including build scripts and the dependency lockfile. No published Git tag is required to obtain these source files
 
 ## Development
 
@@ -101,7 +106,7 @@ tests/                   Functional parity tests
 
 ## Current scope
 
-The initial release intentionally reproduces the userscript behavior. It has no settings page, device sync, or GitHub Enterprise support. Automated fixtures cover representative legacy, React, and review-comment structures together with DOM replacement, initial edit mode, and cross-page SPA navigation. A GitHub redesign outside these fixtures may require an update
+TL;PR preserves the userscript's folding defaults and storage format while refining its reading controls. The toolbar popup applies settings to open conversations without a reload. It has no device sync or GitHub Enterprise support. Automated fixtures cover representative legacy, React, and review-comment structures together with DOM replacement, edit mode, cross-page SPA navigation, keyboard focus, embedded controls, text selection, and comment permalinks. The optional merge helper reads a rendered “🧾 Merge commit body” heading and one code block, previews the PR title plus the block text, and copies only after an explicit click. It cannot verify a hidden Markdown marker from rendered HTML, never fetches private API data, and never fills or submits a merge form. A GitHub redesign outside these fixtures may require an update
 
 ## License
 

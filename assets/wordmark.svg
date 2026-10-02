@@ -2,18 +2,17 @@
   <title id="title">TL;PR wordmark</title>
   <desc id="desc">TL;PR icon followed by its name</desc>
   <defs>
-    <linearGradient id="accent" x1="47" y1="48" x2="81" y2="82" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#8B5CF6"/>
+    <linearGradient id="accent" x1="41" y1="35" x2="87" y2="93" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A78BFA"/>
       <stop offset="1" stop-color="#22D3EE"/>
     </linearGradient>
   </defs>
-  <g>
-    <rect x="16" y="16" width="96" height="96" rx="24" fill="#0D1117"/>
-    <rect x="16.5" y="16.5" width="95" height="95" rx="23.5" fill="none" stroke="#484F58"/>
-    <rect x="35" y="37" width="58" height="8" rx="4" fill="#F0F6FC"/>
-    <rect x="35" y="87" width="58" height="8" rx="4" fill="#F0F6FC"/>
-    <circle cx="64" cy="59" r="6" fill="url(#accent)"/>
-    <path d="M68 68c0 6-4 9-10 11" fill="none" stroke="url(#accent)" stroke-width="7" stroke-linecap="round"/>
-  </g>
+  <rect x="8" y="8" width="112" height="112" rx="30" fill="#11131B"/>
+  <rect x="8.75" y="8.75" width="110.5" height="110.5" rx="29.25" fill="none" stroke="#343346" stroke-width="1.5"/>
+  <path d="M38 32h52a10 10 0 0 1 10 10v40a10 10 0 0 1-10 10H62L43 104V92h-5a10 10 0 0 1-10-10V42a10 10 0 0 1 10-10Z" fill="none" stroke="url(#accent)" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M44 48h40M44 76h28" fill="none" stroke="#F2F0FF" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="48" cy="62" r="2.5" fill="#A78BFA"/>
+  <circle cx="61" cy="62" r="2.5" fill="#78ADFA"/>
+  <circle cx="74" cy="62" r="2.5" fill="#22D3EE"/>
   <text x="144" y="84" fill="#0D1117" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="64" font-weight="700" letter-spacing="-2">TL;PR</text>
 </svg>
