@@ -1,20 +1,14 @@
-const translations: Record<string, string> = {
-  collapse: 'Collapse',
-  expand: 'Expand',
-  collapseAll: 'Collapse all',
-  expandAll: 'Expand all',
-  show: 'Show',
-  hide: 'Hide',
-  timelineHiddenOne: '$COUNT$ item hidden in the middle of the conversation',
-  timelineHiddenMany: '$COUNT$ items hidden in the middle of the conversation',
-};
+import messages from '../src/_locales/en/messages.json';
+import { setLanguage } from '../src/content/i18n';
+
+const translations: Record<string, { message: string }> = messages;
 
 Object.defineProperty(globalThis, 'chrome', {
   configurable: true,
   value: {
     i18n: {
       getMessage(key: string, substitutions?: string | string[]): string {
-        const template = translations[key] ?? '';
+        const template = translations[key]?.message ?? '';
         const first = Array.isArray(substitutions) ? substitutions[0] : substitutions;
         return first ? template.replace('$COUNT$', first) : template;
       },
@@ -23,6 +17,7 @@ Object.defineProperty(globalThis, 'chrome', {
 });
 
 beforeEach(() => {
+  setLanguage('auto');
   document.body.innerHTML = '';
   localStorage.clear();
   window.history.replaceState({}, '', '/x-quark/tlpr/issues/1');

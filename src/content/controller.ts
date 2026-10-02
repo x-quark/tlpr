@@ -1,5 +1,6 @@
 import { icons } from './icons';
 import { message } from './i18n';
+import { mountMergeHelper } from './merge-helper';
 
 export const STORAGE_KEY = 'gh-pr-comment-collapse:v3';
 export const LONG_COMMENT_PX = 140;
@@ -16,6 +17,8 @@ const TIMELINE_ITEM_SELECTOR =
 const HOST_SELECTOR =
   '#discussion_bucket .js-discussion, .js-discussion, .new-discussion-timeline, [data-testid="issue-viewer-container"]';
 const NAVIGATION_EVENTS = ['turbo:load', 'turbo:render', 'soft-nav:success'] as const;
+const INTERACTIVE_SELECTOR =
+  'a, button, input, select, textarea, summary, label, [role="button"], [role="link"], [contenteditable="true"], [tabindex]';
 
 interface PageState {
   comments: Record<string, boolean>;
@@ -29,18 +32,28 @@ export class GitHubCommentCollapser {
   private lastTimelineSignature = '';
   private queued = false;
   private observer: MutationObserver | null = null;
-  private readonly enhancedBodies = new WeakMap<HTMLElement, HTMLElement>();
-  private readonly clickableBodies = new WeakSet<HTMLElement>();
+  private enhancedBodies = new WeakMap<HTMLElement, HTMLElement>();
+  private clickableBodies = new WeakSet<HTMLElement>();
+  private buttonIcons = new WeakMap<HTMLButtonElement, string>();
+  private linkedTarget: HTMLElement | null = null;
+  private lastLinkedTarget: HTMLElement | null = null;
+  private lastLinkedLocation = '';
+  private keyboardNavigation = false;
+  private destroyed = false;
+  private readonly bodyListeners: Array<() => void> = [];
+  private removeMergeHelper: (() => void) | null = null;
+  private pagePath = '';
 
   public constructor(
     private readonly pageDocument: Document = document,
     private readonly pageWindow: Window = window,
+    private readonly options: { mergeHelper?: boolean } = {},
   ) {
     this.store = this.readStore();
   }
 
   public start(): void {
-    if (this.observer) return;
+    if (this.observer || this.destroyed) return;
 
     this.observer = new MutationObserver(() => this.schedule());
     this.observer.observe(this.pageDocument.documentElement, {
@@ -51,6 +64,9 @@ export class GitHubCommentCollapser {
     for (const eventName of NAVIGATION_EVENTS) {
       this.pageDocument.addEventListener(eventName, this.handleNavigation);
     }
+    this.pageWindow.addEventListener('hashchange', this.handleNavigation);
+    this.pageDocument.addEventListener('keydown', this.handleKeyDown);
+    this.pageDocument.addEventListener('pointerdown', this.handlePointerDown);
 
     this.scan();
   }
@@ -62,22 +78,103 @@ export class GitHubCommentCollapser {
     for (const eventName of NAVIGATION_EVENTS) {
       this.pageDocument.removeEventListener(eventName, this.handleNavigation);
     }
+    this.pageWindow.removeEventListener('hashchange', this.handleNavigation);
+    this.pageDocument.removeEventListener('keydown', this.handleKeyDown);
+    this.pageDocument.removeEventListener('pointerdown', this.handlePointerDown);
   }
 
   public scan(): void {
-    if (!/\/(pull|issues)\/\d+/.test(this.pageWindow.location.pathname)) return;
+    if (this.destroyed) return;
+    const pathname = this.pageWindow.location.pathname;
+    if (pathname !== this.pagePath) {
+      this.clearEffects();
+      this.pagePath = pathname;
+    }
+    if (!/\/(pull|issues)\/\d+/.test(pathname)) return;
 
     const host = this.pageDocument.querySelector<HTMLElement>(HOST_SELECTOR);
     if (!host) return;
 
     this.getHumanComments(host).forEach((comment) => this.enhanceComment(comment));
-    this.renderTimeline(host);
+    this.renderGlobalRail(host);
+    const linkedTarget = this.revealLinkedTarget(host);
+    this.renderTimeline(host, Boolean(linkedTarget));
+    linkedTarget?.scrollIntoView?.({ block: 'nearest' });
+  }
+
+  public destroy(): void {
+    this.destroyed = true;
+    this.stop();
+    this.clearEffects();
+  }
+
+  private clearEffects(): void {
+    this.removeMergeHelper?.();
+    this.removeMergeHelper = null;
+    this.bodyListeners.splice(0).forEach((remove) => remove());
+    this.pageDocument
+      .querySelectorAll('.tlpr-control, .tlpr-timeline-summary, .tlpr-global-rail')
+      .forEach((node) => node.remove());
+    this.pageDocument.querySelectorAll<HTMLElement>('.tlpr-body').forEach((body) => {
+      body.classList.remove('tlpr-body');
+      if (body.id === body.dataset.tlprGeneratedId) body.removeAttribute('id');
+      delete body.dataset.tlprGeneratedId;
+      delete body.dataset.tlprCollapsed;
+      body.style.removeProperty('--tlpr-reveal-proximity');
+    });
+    this.pageDocument.querySelectorAll<HTMLElement>('[data-tlpr-enhanced]').forEach((comment) => {
+      delete comment.dataset.tlprEnhanced;
+    });
+    this.pageDocument.querySelectorAll('.tlpr-timeline-hidden').forEach((item) => {
+      item.classList.remove('tlpr-timeline-hidden');
+    });
+    this.enhancedBodies = new WeakMap();
+    this.clickableBodies = new WeakSet();
+    this.buttonIcons = new WeakMap();
+    this.lastTimelineSignature = '';
+    this.linkedTarget = null;
+    this.lastLinkedTarget = null;
+    this.lastLinkedLocation = '';
   }
 
   private readonly handleNavigation = (): void => {
     this.lastTimelineSignature = '';
+    this.linkedTarget = null;
+    this.lastLinkedTarget = null;
+    this.lastLinkedLocation = '';
     this.schedule();
   };
+
+  private readonly handleKeyDown = (event: KeyboardEvent): void => {
+    if (event.key === 'Tab') this.keyboardNavigation = true;
+  };
+
+  private readonly handlePointerDown = (): void => {
+    this.keyboardNavigation = false;
+  };
+
+  private revealLinkedTarget(host: HTMLElement): HTMLElement | null {
+    const location = this.pageWindow.location;
+    const linkedLocation = `${location.pathname}${location.hash}`;
+    if (!location.hash) return null;
+
+    let target: HTMLElement | null;
+    try {
+      target = this.pageDocument.getElementById(decodeURIComponent(location.hash.slice(1)));
+    } catch {
+      return null;
+    }
+    if (!target || !host.contains(target)) return null;
+    if (linkedLocation === this.lastLinkedLocation && target === this.lastLinkedTarget) return null;
+
+    this.lastLinkedLocation = linkedLocation;
+    this.lastLinkedTarget = target;
+    this.linkedTarget = target;
+    const comment = this.getHumanComments(host).find((item) => item.contains(target));
+    // Following a link is temporary: do not replace the user's saved preferences.
+    if (comment) this.paintComment(comment, false);
+    return target;
+  }
 
   private schedule(): void {
     if (this.queued) return;
@@ -144,7 +241,12 @@ export class GitHubCommentCollapser {
   private renderButton(button: HTMLButtonElement, icon: string, label: string): void {
     button.title = label;
     button.setAttribute('aria-label', label);
-    button.innerHTML = `${icon}<span>${label}</span>`;
+    if (this.buttonIcons.get(button) !== icon) {
+      button.innerHTML = icon;
+      button.append(this.pageDocument.createElement('span'));
+      this.buttonIcons.set(button, icon);
+    }
+    button.lastElementChild!.textContent = label;
   }
 
   private makeButton(icon: string, label: string, className: string): HTMLButtonElement {
@@ -162,15 +264,17 @@ export class GitHubCommentCollapser {
 
     body.classList.add('tlpr-body');
     body.dataset.tlprCollapsed = collapsed ? '1' : '0';
+    body.style.removeProperty('--tlpr-reveal-proximity');
 
     if (button) {
       const label = collapsed ? message('expand') : message('collapse');
-      this.renderButton(button, collapsed ? icons.down : icons.up, label);
+      this.renderButton(button, icons.down, label);
       button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
     }
   }
 
   private setComment(comment: HTMLElement, collapsed: boolean): void {
+    if (this.destroyed || this.botComment(comment) || this.editableComment(comment)) return;
     const id = this.getId(comment);
     if (!id) return;
 
@@ -200,7 +304,12 @@ export class GitHubCommentCollapser {
 
     const control = this.pageDocument.createElement('span');
     control.className = 'tlpr-control';
-    const button = this.makeButton(icons.up, message('collapse'), 'tlpr-btn tlpr-comment-toggle');
+    const button = this.makeButton(icons.down, message('collapse'), 'tlpr-btn tlpr-comment-toggle');
+    if (!body.id) {
+      body.id = `tlpr-body-${id}`;
+      body.dataset.tlprGeneratedId = body.id;
+    }
+    button.setAttribute('aria-controls', body.id);
     control.append(button);
     header.append(control);
 
@@ -218,10 +327,70 @@ export class GitHubCommentCollapser {
 
     if (!this.clickableBodies.has(body)) {
       this.clickableBodies.add(body);
-      body.addEventListener('click', () => {
+      const handleClick = (event: MouseEvent): void => {
+        const target = event.target;
+        if (target instanceof Element && target.closest(INTERACTIVE_SELECTOR)) return;
+        if (this.pageWindow.getSelection()?.toString()) return;
         if (body.dataset.tlprCollapsed === '1') {
           this.setComment(comment, false);
         }
+      };
+      const handleFocus = (event: FocusEvent): void => {
+        const target = event.target;
+        if (
+          target instanceof Element &&
+          (this.keyboardNavigation || target.matches(':focus-visible')) &&
+          body.dataset.tlprCollapsed === '1'
+        ) {
+          this.setComment(comment, false);
+        }
+      };
+      const clearRevealCue = (): void => {
+        body.style.removeProperty('--tlpr-reveal-proximity');
+      };
+      const handlePointerMove = (event: PointerEvent): void => {
+        const target = event.target;
+        if (
+          event.pointerType !== 'mouse' ||
+          body.dataset.tlprCollapsed !== '1' ||
+          this.botComment(comment) ||
+          this.editableComment(comment) ||
+          (target instanceof Element && target.closest(INTERACTIVE_SELECTOR)) ||
+          this.pageWindow.getSelection()?.toString() ||
+          this.pageDocument.documentElement.dataset.tlprAnimations === 'off' ||
+          this.pageWindow.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+        ) {
+          clearRevealCue();
+          return;
+        }
+
+        const bounds = body.getBoundingClientRect();
+        if (!bounds.width || !bounds.height) return;
+        const edgeDistance = Math.min(
+          event.clientX - bounds.left,
+          bounds.right - event.clientX,
+          event.clientY - bounds.top,
+          bounds.bottom - event.clientY,
+        );
+        const proximity = Math.max(0, Math.min(1, edgeDistance / 12));
+        // A short entry ramp matches the whole clickable preview, then stays level.
+        const eased = proximity * proximity * (3 - 2 * proximity);
+        body.style.setProperty('--tlpr-reveal-proximity', eased.toFixed(3));
+      };
+      body.addEventListener('click', handleClick);
+      body.addEventListener('focusin', handleFocus);
+      body.addEventListener('pointermove', handlePointerMove, { passive: true });
+      body.addEventListener('pointerleave', clearRevealCue);
+      body.addEventListener('pointercancel', clearRevealCue);
+      body.addEventListener('pointerdown', clearRevealCue);
+      this.bodyListeners.push(() => {
+        body.removeEventListener('click', handleClick);
+        body.removeEventListener('focusin', handleFocus);
+        body.removeEventListener('pointermove', handlePointerMove);
+        body.removeEventListener('pointerleave', clearRevealCue);
+        body.removeEventListener('pointercancel', clearRevealCue);
+        body.removeEventListener('pointerdown', clearRevealCue);
+        clearRevealCue();
       });
     }
   }
@@ -259,8 +428,56 @@ export class GitHubCommentCollapser {
   }
 
   private clearTimelineControls(host: HTMLElement): void {
-    host.querySelectorAll('.tlpr-timeline-summary, .tlpr-toolbar').forEach((node) => node.remove());
+    host.querySelectorAll('.tlpr-timeline-summary').forEach((node) => node.remove());
     this.getTimelineItems(host).forEach((item) => item.classList.remove('tlpr-timeline-hidden'));
+  }
+
+  private renderGlobalRail(host: HTMLElement): void {
+    if (host.querySelector('.tlpr-global-rail')) return;
+    const rail = this.pageDocument.createElement('div');
+    rail.className = 'tlpr-toolbar tlpr-global-rail';
+    rail.setAttribute('role', 'group');
+    rail.setAttribute('aria-label', message('conversationControls'));
+    const expand = this.makeButton(icons.unfold, message('expandAll'), 'tlpr-btn');
+    expand.dataset.tlprAction = 'expand-all';
+    const collapse = this.makeButton(icons.fold, message('collapseAll'), 'tlpr-btn');
+    collapse.dataset.tlprAction = 'collapse-all';
+    const apply = (collapsed: boolean): void => {
+      if (this.destroyed) return;
+      const state = this.getPageState();
+      this.getHumanComments(host).forEach((comment) => {
+        const id = this.getId(comment);
+        if (id) state.comments[id] = collapsed;
+        this.paintComment(comment, collapsed);
+      });
+      state.timelineCollapsed = collapsed;
+      this.linkedTarget = null;
+      this.saveStore();
+      this.renderTimeline(host, true);
+    };
+    expand.addEventListener('click', () => apply(false));
+    collapse.addEventListener('click', () => apply(true));
+    rail.append(expand, collapse);
+    host.prepend(rail);
+    if (this.options.mergeHelper && /\/pull\/\d+/.test(this.pageWindow.location.pathname)) {
+      this.removeMergeHelper?.();
+      this.removeMergeHelper = mountMergeHelper(this.pageDocument, this.pageWindow, rail, {
+        mergeOpen: message('mergeOpen'),
+        mergeTitle: message('mergeTitle'),
+        mergeDetectedNotice: message('mergeDetectedNotice'),
+        mergeCandidateLabel: message('mergeCandidateLabel'),
+        mergeCandidatePlaceholder: message('mergeCandidatePlaceholder'),
+        mergeCandidateOption: message('mergeCandidateOption'),
+        mergePreviewLabel: message('mergePreviewLabel'),
+        mergeMissingTitle: message('mergeMissingTitle'),
+        mergeNoCandidates: message('mergeNoCandidates'),
+        mergeCopy: message('mergeCopy'),
+        mergeCopying: message('mergeCopying'),
+        mergeCopied: message('mergeCopied'),
+        mergeCopyError: message('mergeCopyError'),
+        mergeClose: message('mergeClose'),
+      });
+    }
   }
 
   private renderTimeline(host: HTMLElement, force = false): void {
@@ -272,7 +489,14 @@ export class GitHubCommentCollapser {
       )
       .join('|');
 
-    if (!force && signature === this.lastTimelineSignature) return;
+    const needsSummary = items.length > KEEP_LEADING_TIMELINE_ITEMS + KEEP_TRAILING_TIMELINE_ITEMS;
+    if (
+      !force &&
+      signature === this.lastTimelineSignature &&
+      (!needsSummary || host.querySelector('.tlpr-timeline-summary'))
+    ) {
+      return;
+    }
     this.lastTimelineSignature = signature;
     this.clearTimelineControls(host);
 
@@ -282,54 +506,55 @@ export class GitHubCommentCollapser {
 
     const hidden = items.slice(KEEP_LEADING_TIMELINE_ITEMS, -KEEP_TRAILING_TIMELINE_ITEMS);
     const state = this.getPageState();
-    const collapsed = state.timelineCollapsed !== false;
-    const toolbar = this.pageDocument.createElement('div');
-    toolbar.className = 'tlpr-toolbar';
-
-    const collapseAll = this.makeButton(
-      icons.fold,
-      message('collapseAll'),
-      'tlpr-btn tlpr-timeline-toggle',
-    );
-    const expandAll = this.makeButton(
-      icons.unfold,
-      message('expandAll'),
-      'tlpr-btn tlpr-timeline-toggle',
-    );
-    toolbar.append(collapseAll, expandAll);
-    items[KEEP_LEADING_TIMELINE_ITEMS - 1]?.after(toolbar);
-
-    collapseAll.addEventListener('click', () => {
-      this.getHumanComments(host).forEach((comment) => this.setComment(comment, true));
-    });
-    expandAll.addEventListener('click', () => {
-      this.getHumanComments(host).forEach((comment) => this.setComment(comment, false));
-    });
-
+    let collapsed =
+      state.timelineCollapsed !== false &&
+      !hidden.some((item) => this.linkedTarget && item.contains(this.linkedTarget));
     const summary = this.pageDocument.createElement('div');
     summary.className = 'tlpr-timeline-summary';
+    summary.setAttribute('role', 'group');
+    summary.setAttribute('aria-label', message('conversationControls'));
     const count = hidden.length;
-    const label = message(count === 1 ? 'timelineHiddenOne' : 'timelineHiddenMany', String(count));
-    const toggleLabel = collapsed ? message('show') : message('hide');
     const toggle = this.makeButton(
-      collapsed ? icons.down : icons.up,
-      toggleLabel,
+      icons.down,
+      message('show', String(count)),
       'tlpr-btn tlpr-timeline-toggle',
     );
-    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
 
+    const context = this.pageDocument.createElement('div');
+    context.className = 'tlpr-summary-context';
+    const brand = this.pageDocument.createElement('span');
+    brand.className = 'tlpr-brand';
+    brand.textContent = message('extensionName');
     const text = this.pageDocument.createElement('span');
     text.className = 'tlpr-timeline-summary-text';
-    text.textContent = label;
-    summary.append(text, toggle);
+    text.setAttribute('aria-live', 'polite');
+    context.append(brand, text);
+    summary.append(context, toggle);
     hidden[0]?.before(summary);
-    hidden.forEach((item) => item.classList.toggle('tlpr-timeline-hidden', collapsed));
+
+    const paint = (): void => {
+      const key = collapsed
+        ? count === 1
+          ? 'timelineHiddenOne'
+          : 'timelineHiddenMany'
+        : count === 1
+          ? 'timelineShownOne'
+          : 'timelineShownMany';
+      text.textContent = message(key, String(count));
+      this.renderButton(toggle, icons.down, message(collapsed ? 'show' : 'hide', String(count)));
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+      summary.dataset.tlprCollapsed = collapsed ? '1' : '0';
+      hidden.forEach((item) => item.classList.toggle('tlpr-timeline-hidden', collapsed));
+    };
+    paint();
 
     toggle.addEventListener('click', () => {
-      this.getPageState().timelineCollapsed = !collapsed;
+      collapsed = !collapsed;
+      this.linkedTarget = null;
+      this.getPageState().timelineCollapsed = collapsed;
       this.saveStore();
-      this.lastTimelineSignature = '';
-      this.renderTimeline(host, true);
+      // Update in place so keyboard focus and the icon transition survive the click.
+      paint();
     });
   }
 }

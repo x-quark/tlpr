@@ -6,7 +6,7 @@
     "message": "Make long GitHub pull request and issue conversations easier to read."
   },
   "actionTitle": {
-    "message": "TL;PR is active on GitHub pull requests and issues"
+    "message": "TL;PR reading settings"
   },
   "collapse": {
     "message": "Collapse"
@@ -21,13 +21,18 @@
     "message": "Expand all"
   },
   "show": {
-    "message": "Show"
+    "message": "Show $COUNT$ more",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
   },
   "hide": {
-    "message": "Hide"
+    "message": "Hide middle"
   },
   "timelineHiddenOne": {
-    "message": "$COUNT$ item hidden in the middle of the conversation",
+    "message": "$COUNT$ item hidden",
     "placeholders": {
       "count": {
         "content": "$1"
@@ -35,11 +40,162 @@
     }
   },
   "timelineHiddenMany": {
-    "message": "$COUNT$ items hidden in the middle of the conversation",
+    "message": "$COUNT$ items hidden",
     "placeholders": {
       "count": {
         "content": "$1"
       }
     }
+  },
+  "timelineShownOne": {
+    "message": "$COUNT$ item shown",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "timelineShownMany": {
+    "message": "$COUNT$ items shown",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "conversationControls": {
+    "message": "Conversation reading controls"
+  },
+  "popupTitle": {
+    "message": "TL;PR reading settings"
+  },
+  "popupEyebrow": {
+    "message": "GITHUB, LESS NOISE"
+  },
+  "popupHeading": {
+    "message": "A little room to read."
+  },
+  "popupIntro": {
+    "message": "Your preferences for pull requests and issues."
+  },
+  "popupEnabled": {
+    "message": "Reading assistance"
+  },
+  "popupEnabledDescription": {
+    "message": "Fold long conversations and stay focused."
+  },
+  "popupOn": {
+    "message": "On"
+  },
+  "popupOff": {
+    "message": "Paused"
+  },
+  "popupPreferences": {
+    "message": "Make it yours"
+  },
+  "popupLanguage": {
+    "message": "Language"
+  },
+  "popupLanguageDescription": {
+    "message": "Applies to the popup and reading controls."
+  },
+  "popupLanguageAuto": {
+    "message": "Browser default"
+  },
+  "popupLanguageEnglish": {
+    "message": "English"
+  },
+  "popupLanguageFrench": {
+    "message": "Français"
+  },
+  "popupAnimations": {
+    "message": "Gentle animations"
+  },
+  "popupAnimationsDescription": {
+    "message": "Smooth transitions. Respects reduced motion."
+  },
+  "popupStateColors": {
+    "message": "State colors"
+  },
+  "popupStateColorsDescription": {
+    "message": "Use color to distinguish folded and open content."
+  },
+  "popupHelperSection": {
+    "message": "A small extra"
+  },
+  "popupMergeHelper": {
+    "message": "Merge message helper"
+  },
+  "popupMergeHelperDescription": {
+    "message": "Prepare text to copy when you ask. Never merges a pull request."
+  },
+  "popupOptional": {
+    "message": "Optional"
+  },
+  "popupPrivacy": {
+    "message": "Saved in this browser. No data sent."
+  },
+  "popupLoading": {
+    "message": "Loading your preferences…"
+  },
+  "popupSaving": {
+    "message": "Saving…"
+  },
+  "popupSaved": {
+    "message": "Preferences saved"
+  },
+  "popupLoadError": {
+    "message": "Could not load your preferences. Please try again."
+  },
+  "popupSaveError": {
+    "message": "Could not save. Your previous preferences are unchanged. Please try again."
+  },
+  "popupRetry": {
+    "message": "Try again"
+  },
+  "mergeOpen": {
+    "message": "Prepare merge text"
+  },
+  "mergeTitle": {
+    "message": "Prepare merge text"
+  },
+  "mergeDetectedNotice": {
+    "message": "Template detected from the visible comment heading. The hidden marker cannot be verified here. Review the text before copying. No merge will be performed."
+  },
+  "mergeCandidateLabel": {
+    "message": "Comment to use"
+  },
+  "mergeCandidatePlaceholder": {
+    "message": "Choose a comment…"
+  },
+  "mergeCandidateOption": {
+    "message": "Comment {count}"
+  },
+  "mergePreviewLabel": {
+    "message": "Pull request title and message body"
+  },
+  "mergeMissingTitle": {
+    "message": "The pull request title could not be found. No text has been prepared."
+  },
+  "mergeNoCandidates": {
+    "message": "No comment with the heading “Merge commit body” and one code block was found."
+  },
+  "mergeCopy": {
+    "message": "Copy message"
+  },
+  "mergeCopying": {
+    "message": "Copying…"
+  },
+  "mergeCopied": {
+    "message": "Message copied"
+  },
+  "mergeCopyError": {
+    "message": "Clipboard access was blocked. Select the text above and copy it manually."
+  },
+  "mergeClose": {
+    "message": "Close"
+  },
+  "popupLanguageAutoShort": {
+    "message": "Auto"
   }
 }
