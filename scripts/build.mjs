@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { build } from 'vite';
 
-import { collectSourceFiles, sourceNotice } from './source-files.mjs';
+import { collectSourceFiles, packagedSourcePath, sourceNotice } from './source-files.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outputDirectory = path.join(root, 'dist');
@@ -89,7 +89,7 @@ for (const size of [16, 32, 48, 128]) {
 }
 
 for (const relativePath of await collectSourceFiles(root)) {
-  const destination = path.join(outputDirectory, 'source', relativePath);
+  const destination = path.join(outputDirectory, packagedSourcePath(relativePath));
   await mkdir(path.dirname(destination), { recursive: true });
   await copyFile(path.join(root, relativePath), destination);
 }
