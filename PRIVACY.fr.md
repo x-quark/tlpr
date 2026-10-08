@@ -4,7 +4,7 @@
 
 Date d’entrée en vigueur : 2026-08-30
 
-Dernière mise à jour : 2026-09-30
+Dernière mise à jour : 2026-10-08
 
 ## Périmètre
 
@@ -21,7 +21,7 @@ TL;PR ne transmet, ne vend, ne partage et ne traite à distance aucune de ces in
 
 ## Limitation de la finalité
 
-TL;PR utilise le contenu des conversations GitHub affichées uniquement sur l’appareil de l’utilisateur et uniquement pour fournir ses commandes locales de lecture et l’assistant de préparation et de copie explicitement activé. Il n’utilise pas ce contenu à des fins publicitaires, analytiques, de profilage ou sans rapport avec cette finalité
+TL;PR utilise le contenu des conversations GitHub affichées uniquement sur l’appareil de l’utilisateur et uniquement pour fournir ses commandes locales de lecture et l’assistant de préparation, de copie et d’insertion explicitement activé. Il n’utilise pas ce contenu à des fins publicitaires, analytiques, de profilage ou sans rapport avec cette finalité
 
 L’utilisation par TL;PR des informations provenant des pages GitHub respecte la [politique relative aux données utilisateur du Chrome Web Store](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq), notamment ses exigences d’usage limité
 
@@ -47,7 +47,7 @@ TL;PR s’exécute uniquement sur les URL de pull requests et d’issues GitHub 
 - `https://github.com/*/*/pull/*`
 - `https://github.com/*/*/issues/*`
 
-L’extension lit et modifie la page affichée pour replier, déplier, masquer et révéler des éléments de conversation, et fournir l’assistant optionnel de préparation et de copie déclenché par l’utilisateur. Elle ne lit pas les jetons d’authentification GitHub, n’appelle pas l’API GitHub et n’effectue aucune requête réseau
+L’extension lit et modifie la page affichée pour replier, déplier, masquer et révéler des éléments de conversation, et fournir l’assistant optionnel de préparation, de copie et d’insertion déclenché par l’utilisateur. L’insertion remplit uniquement la description étendue à la demande explicite de l’utilisateur, sans changer le titre de commit par défaut ni soumettre le formulaire. Elle ne lit pas les jetons d’authentification GitHub, n’appelle pas l’API GitHub et n’effectue aucune requête réseau
 
 ## Tiers et code distant
 

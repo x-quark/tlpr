@@ -3,6 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mountMergeHelper, type MergeHelperLabels } from '../../src/content/merge-helper';
 
 const labels: MergeHelperLabels = {
+  mergeInsert: 'Insert',
+  mergeInserted: 'Message inserted',
+  mergeEdited:
+    'Your description has been edited. It was kept unchanged; the prepared text is below.',
+  mergeFormUnavailable: 'The merge form changed. Reopen it to insert the message.',
+  mergeChooseSource: 'Choose a comment, review its text, then select Insert.',
+  mergePreview: 'Preview source',
+
   mergeOpen: 'Preview merge text',
   mergeTitle: 'Merge text preview',
   mergeDetectedNotice:
@@ -453,5 +461,255 @@ describe('mountMergeHelper', () => {
     expect(form.querySelector('input')!.value).toBe('Existing title');
     expect(form.querySelector('textarea')!.value).toBe('Existing body');
     expect(submit).not.toHaveBeenCalled();
+  });
+});
+
+describe('current GitHub markup', () => {
+  it('reads the React PR title without its accessible issue number', () => {
+    start(
+      mountPage(
+        [comment(markedBody('Exact body'))],
+        '<h1 data-component="PH_Title"><span class="markdown-title">Modern PR title</span><span class="sr-only"> - #713</span></h1>',
+      ),
+    ).click();
+    expect(preview().value).toBe('Modern PR title\n\nExact body');
+  });
+
+  it('reads syntax-highlighted blocks without requiring a nested code element', () => {
+    start(
+      mountPage([
+        comment(
+          '<h1>🧾 Merge commit body</h1><div class="highlight highlight-text-md"><pre><span class="pl-v">-</span> Exact body</pre></div>',
+        ),
+      ]),
+    ).click();
+    expect(preview().value).toBe('Improve example behavior\n\n- Exact body');
+  });
+});
+
+describe('explicit merge form insertion', () => {
+  function form() {
+    window.history.replaceState({}, '', '/example/project/pull/713');
+    const container = mountPage([comment(markedBody('- Body'))]);
+    document
+      .querySelector('.js-discussion')!
+      .insertAdjacentHTML(
+        'beforeend',
+        '<form class="js-merge-pull-request"><label for="merge_title_field">Commit message</label><input id="merge_title_field" name="commit_title" value="Merge pull request #713 from example/topic"><label for="merge_message_field">Extended description</label><textarea id="merge_message_field" name="commit_message">Improve example behavior</textarea><button type="submit">Confirm merge</button></form>',
+      );
+    start(container);
+    return document.querySelector<HTMLTextAreaElement>('#merge_message_field')!;
+  }
+  function insert() {
+    return document.querySelector<HTMLButtonElement>('.tlpr-merge-insert')!;
+  }
+  it('inserts only on request and preserves the default commit title without submitting', () => {
+    const field = form();
+    const submit = vi.fn((e: Event) => e.preventDefault());
+    field.form!.addEventListener('submit', submit);
+    expect(field.value).toBe('Improve example behavior');
+    expect(insert()).not.toBeNull();
+    insert().click();
+    expect(field.value).toBe('Improve example behavior\n\n- Body');
+    expect(document.querySelector<HTMLInputElement>('#merge_title_field')!.value).toBe(
+      'Merge pull request #713 from example/topic',
+    );
+    expect(submit).not.toHaveBeenCalled();
+    insert().click();
+    expect(field.value).toBe('Improve example behavior\n\n- Body');
+  });
+  it('preserves manual edits before and after inserting', () => {
+    const field = form();
+    field.value = 'My manual description';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    insert().click();
+    expect(field.value).toBe('My manual description');
+  });
+  it('does not enhance unrelated textareas or squash commit forms', () => {
+    const field = form();
+    document.querySelector<HTMLInputElement>('#merge_title_field')!.value = 'Squash title';
+    insert().click();
+    expect(field.value).toBe('Improve example behavior');
+  });
+});
+
+describe('React merge confirmation form', () => {
+  it('handles generated ids and missing names/form tags via associated field labels', () => {
+    window.history.replaceState({}, '', '/example/project/pull/713');
+    const container = mountPage([comment(markedBody('React body'))]);
+    document
+      .querySelector('.js-discussion')!
+      .insertAdjacentHTML(
+        'beforeend',
+        '<section class="merge-container"><div><label for="_r_title_">Commit message</label><span data-component="TextInput"><input id="_r_title_" value="Merge pull request #713 from example/topic"></span></div><div><label for="_r_description_">Extended description</label><span data-component="TextInput"><textarea id="_r_description_">Improve example behavior</textarea></span></div><button type="button">Confirm merge</button></section>',
+      );
+    const confirm = vi.fn();
+    document.querySelector('.merge-container button')!.addEventListener('click', confirm);
+    start(container);
+    const insert = document.querySelector<HTMLButtonElement>('.tlpr-merge-insert');
+    expect(insert).not.toBeNull();
+    insert!.click();
+    expect(document.querySelector<HTMLTextAreaElement>('#_r_description_')!.value).toBe(
+      'Improve example behavior\n\nReact body',
+    );
+    expect(confirm).not.toHaveBeenCalled();
+  });
+});
+
+describe('insertion lifecycle guards', () => {
+  function setup(bodies = [comment(markedBody('First body'))]) {
+    window.history.replaceState({}, '', '/example/project/pull/713');
+    const rail = mountPage(bodies);
+    const handle = mountMergeHelper(document, window, rail, labels);
+    cleanups.push(handle);
+    const form = document.createElement('form');
+    form.innerHTML =
+      '<div><label for="ct">Commit message</label><input id="ct" value="Merge pull request #713 from example/topic"></div><div><label for="cm">Extended description</label><textarea id="cm">Improve example behavior</textarea></div><button type="submit">Confirm merge</button>';
+    document.querySelector('.js-discussion')!.append(form);
+    handle.refresh();
+    return {
+      handle,
+      form,
+      field: form.querySelector('textarea')!,
+      button: form.querySelector<HTMLButtonElement>('.tlpr-merge-insert')!,
+    };
+  }
+  it('requires source selection then explicit insertion when two comments qualify', () => {
+    const { field, button, form } = setup([
+      comment(markedBody('First body'), '1'),
+      comment(markedBody('Second body'), '2'),
+    ]);
+    button.click();
+    expect(field.value).toBe('Improve example behavior');
+    expect(form.querySelectorAll('input[type="radio"]')).toHaveLength(2);
+    form.querySelectorAll<HTMLInputElement>('input[type="radio"]')[1]!.click();
+    expect(field.value).toBe('Improve example behavior');
+    button.click();
+    expect(field.value).toBe('Improve example behavior\n\nSecond body');
+  });
+  it('does not overwrite manual text after insertion or duplicate on rescans', () => {
+    const { field, button, handle } = setup();
+    button.click();
+    field.value += '\nMy manual addition';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    handle.refresh();
+    handle.refresh();
+    expect(document.querySelectorAll('.tlpr-merge-insert')).toHaveLength(1);
+    button.click();
+    expect(field.value).toBe('Improve example behavior\n\nFirst body\nMy manual addition');
+  });
+  it('keeps the manual-edit guard when the user returns the field to its default text', () => {
+    const { field, button } = setup();
+    field.value = 'Improve example behavior';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    button.click();
+    expect(field.value).toBe('Improve example behavior');
+  });
+  it('uses the native textarea setter so framework value tracking receives the change', () => {
+    const { field, button } = setup();
+    const native = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!;
+    let tracked = field.value;
+    Object.defineProperty(field, 'value', {
+      get() {
+        return native.get!.call(this);
+      },
+      set(v) {
+        tracked = v;
+        native.set!.call(this, v);
+      },
+    });
+    let received = '';
+    field.addEventListener('input', () => {
+      if (field.value !== tracked) received = field.value;
+    });
+    button.click();
+    expect(received).toBe('Improve example behavior\n\nFirst body');
+  });
+  it('does not reuse a preview selection after its source changes', () => {
+    const { field, button, form } = setup([
+      comment(markedBody('First body'), '1'),
+      comment(markedBody('Second body'), '2'),
+    ]);
+    button.click();
+    form.querySelector<HTMLInputElement>('input[type="radio"]')!.click();
+    document.querySelector('pre code')!.textContent = 'Changed body';
+    button.click();
+    expect(field.value).toBe('Improve example behavior');
+    expect(form.querySelector('input:checked')).toBeNull();
+  });
+  it('refuses stale and detached fields after SPA navigation or form replacement', () => {
+    const { field, button } = setup();
+    window.history.replaceState({}, '', '/example/project/pull/714');
+    button.click();
+    expect(field.value).toBe('Improve example behavior');
+    field.remove();
+    button.click();
+    expect(field.value).toBe('Improve example behavior');
+  });
+  it('replaces cloned enhancement controls without leaving an inert duplicate', () => {
+    const { form, handle } = setup();
+    const clone = form.cloneNode(true) as HTMLFormElement;
+    form.replaceWith(clone);
+    handle.refresh();
+    expect(clone.querySelectorAll('.tlpr-merge-insert')).toHaveLength(1);
+    clone.querySelector<HTMLButtonElement>('.tlpr-merge-insert')!.click();
+    expect(clone.querySelector('textarea')!.value).toBe('Improve example behavior\n\nFirst body');
+  });
+});
+
+describe('manual description retention across remounts', () => {
+  it.each(['removed controls', 'cloned controls', 'cloned field'])(
+    'retains a manually blank description after %s',
+    (mode) => {
+      window.history.replaceState({}, '', '/example/project/pull/713');
+      const rail = mountPage([comment(markedBody('Body'))]);
+      rail.insertAdjacentHTML(
+        'afterend',
+        '<section><div><label for="manual-title">Commit message</label><input id="manual-title" value="Merge pull request #713 from example/topic"></div><div><label for="manual-desc">Extended description</label><textarea id="manual-desc">Improve example behavior</textarea></div></section>',
+      );
+      const handle = mountMergeHelper(document, window, rail, labels);
+      cleanups.push(handle);
+      let field = document.querySelector<HTMLTextAreaElement>('#manual-desc')!;
+      field.value = '';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      const controls = document.querySelector('.tlpr-merge-form-controls')!;
+      if (mode === 'removed controls') controls.remove();
+      else if (mode === 'cloned controls') controls.replaceWith(controls.cloneNode(true));
+      else {
+        const next = field.cloneNode(true) as HTMLTextAreaElement;
+        field.replaceWith(next);
+        field = next;
+      }
+      handle.refresh();
+      expect(document.querySelectorAll('.tlpr-merge-insert')).toHaveLength(1);
+      document.querySelector<HTMLButtonElement>('.tlpr-merge-insert')!.click();
+      expect(field.value).toBe('');
+    },
+  );
+});
+
+describe('source section boundaries', () => {
+  it('does not take the sole code block from an unrelated later heading', () => {
+    start(
+      mountPage([
+        comment(
+          '<h2>🧾 Merge commit body</h2><p>Not ready</p><h2>Troubleshooting</h2><pre>unrelated command</pre>',
+        ),
+      ]),
+    ).click();
+    expect(preview().value).toBe('');
+  });
+});
+
+describe('merge form page identity', () => {
+  it('does not attach to a stale commit title for a different pull request', () => {
+    window.history.replaceState({}, '', '/example/project/pull/713');
+    const rail = mountPage([comment(markedBody('Body'))]);
+    rail.insertAdjacentHTML(
+      'afterend',
+      '<section><label for="stale-title">Commit message</label><input id="stale-title" value="Merge pull request #714 from example/topic"><label for="stale-description">Extended description</label><textarea id="stale-description">Improve example behavior</textarea></section>',
+    );
+    start(rail);
+    expect(document.querySelector('.tlpr-merge-insert')).toBeNull();
   });
 });
