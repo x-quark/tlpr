@@ -18,7 +18,7 @@ Les longues revues GitHub deviennent difficiles à parcourir quand les réponses
 - Garde les commandes globales de repli et de dépliage accessibles pendant le défilement
 - Distingue les états par des accents, des chevrons et des libellés accessibles
 - Propose des réglages d’activation, de langue, d’animations et de couleurs d’état
-- Inclut un assistant optionnel de préparation et de copie du message de fusion, désactivé par défaut
+- Inclut un assistant optionnel de préparation et d’insertion du message de fusion, désactivé par défaut
 - Conserve le focus clavier sur les commandes de chronologie et révèle le contenu ciblé
 - Révèle temporairement les commentaires liés sans remplacer les préférences de repli enregistrées
 - Conserve l’état par page avec la clé existante `gh-pr-comment-collapse:v3`
@@ -72,8 +72,8 @@ pnpm validate:package
 
 Les fichiers suivants sont produits :
 
-- `release/tlpr-v0.2.0.zip`
-- `release/tlpr-v0.2.0.zip.sha256`
+- `release/tlpr-v0.2.1.zip`
+- `release/tlpr-v0.2.1.zip.sha256`
 
 Le ZIP contient directement `manifest.json`, la licence GPL et une notice `SOURCE.md` à sa racine. Le code source correspondant complet est inclus dans `source/`, avec les scripts de construction et le fichier de verrouillage des dépendances. Aucun tag Git publié n’est nécessaire pour obtenir ces sources
 
@@ -106,7 +106,7 @@ tests/                   Tests de parité fonctionnelle
 
 ## Périmètre actuel
 
-TL;PR conserve les règles de repli par défaut et le format de stockage du userscript tout en affinant ses commandes de lecture. La fenêtre de réglages applique les changements aux conversations ouvertes sans rechargement. Il ne propose ni synchronisation entre appareils, ni prise en charge de GitHub Enterprise. Des fixtures automatisées couvrent des structures représentatives historiques, React et de revue, ainsi que le remplacement de nœuds DOM, le mode édition, la navigation SPA entre pages, le focus clavier, les contrôles intégrés, la sélection de texte et les liens vers les commentaires. L’assistant optionnel repère un titre affiché « 🧾 Merge commit body » et un bloc de code, présente le titre de la pull request suivi de ce texte, puis copie uniquement après un clic explicite. Il ne peut pas vérifier un marqueur Markdown masqué depuis le HTML affiché, ne récupère aucune donnée d’API privée et ne remplit ni ne soumet de formulaire de fusion. Une évolution de GitHub hors de ces fixtures peut nécessiter une mise à jour
+TL;PR conserve les règles de repli par défaut et le format de stockage du userscript tout en affinant ses commandes de lecture. La fenêtre de réglages applique les changements aux conversations ouvertes sans rechargement. Il ne propose ni synchronisation entre appareils, ni prise en charge de GitHub Enterprise. Des fixtures automatisées couvrent des structures représentatives historiques, React et de revue, ainsi que le remplacement de nœuds DOM, le mode édition, la navigation SPA entre pages, le focus clavier, les contrôles intégrés, la sélection de texte et les liens vers les commentaires. L’assistant optionnel repère un titre affiché « 🧾 Merge commit body » et un bloc de code, présente le titre de la pull request suivi de ce texte, puis copie uniquement après un clic explicite. Lorsque le formulaire de confirmation de fusion GitHub est ouvert, **Insérer** remplit la description étendue avec le titre de la PR, une ligne vide et ce bloc de code. Le titre de commit par défaut reste intact. Les descriptions personnalisées sont conservées ; plusieurs commentaires sources imposent un choix et un nouveau clic explicite sur Insérer. L’assistant ne peut pas vérifier un marqueur Markdown masqué depuis le HTML affiché, ne récupère aucune donnée d’API privée et ne soumet jamais le formulaire ni ne fusionne de pull request. Une évolution de GitHub hors de ces fixtures peut nécessiter une mise à jour
 
 ## Licence
 

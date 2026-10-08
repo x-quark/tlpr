@@ -18,7 +18,7 @@ Long GitHub reviews become difficult to scan when replies, automated events, and
 - Keeps concise global expand/collapse controls within reach while scrolling
 - Shows folded/expanded state with accents, chevrons, and accessible labels
 - Offers toolbar settings for enablement, language, animations, and state colors
-- Includes an optional, off-by-default merge-text preview/copy helper
+- Includes an optional, off-by-default merge-text preview and insertion helper
 - Keeps keyboard focus on timeline controls and reveals focused comment content
 - Temporarily reveals linked comments without overwriting saved folding preferences
 - Persists per-page state under the existing `gh-pr-comment-collapse:v3` key
@@ -72,8 +72,8 @@ pnpm validate:package
 
 The commands produce:
 
-- `release/tlpr-v0.2.0.zip`
-- `release/tlpr-v0.2.0.zip.sha256`
+- `release/tlpr-v0.2.1.zip`
+- `release/tlpr-v0.2.1.zip.sha256`
 
 The ZIP contains `manifest.json`, the GPL license, and a `SOURCE.md` notice at its root. The complete corresponding source is bundled under `source/`, including build scripts and the dependency lockfile. No published Git tag is required to obtain these source files
 
@@ -106,7 +106,7 @@ tests/                   Functional parity tests
 
 ## Current scope
 
-TL;PR preserves the userscript's folding defaults and storage format while refining its reading controls. The toolbar popup applies settings to open conversations without a reload. It has no device sync or GitHub Enterprise support. Automated fixtures cover representative legacy, React, and review-comment structures together with DOM replacement, edit mode, cross-page SPA navigation, keyboard focus, embedded controls, text selection, and comment permalinks. The optional merge helper reads a rendered “🧾 Merge commit body” heading and one code block, previews the PR title plus the block text, and copies only after an explicit click. It cannot verify a hidden Markdown marker from rendered HTML, never fetches private API data, and never fills or submits a merge form. A GitHub redesign outside these fixtures may require an update
+TL;PR preserves the userscript's folding defaults and storage format while refining its reading controls. The toolbar popup applies settings to open conversations without a reload. It has no device sync or GitHub Enterprise support. Automated fixtures cover representative legacy, React, and review-comment structures together with DOM replacement, edit mode, cross-page SPA navigation, keyboard focus, embedded controls, text selection, and comment permalinks. The optional merge helper reads a rendered “🧾 Merge commit body” heading and one code block, previews the PR title plus the block text, and copies only after an explicit click. When GitHub’s merge confirmation form is open, **Insert** fills the extended description with the PR title, a blank line, and that code block. The default merge commit title is untouched. Custom descriptions are preserved; multiple source comments require a choice and another explicit Insert click. The helper cannot verify a hidden Markdown marker from rendered HTML, never fetches private API data, and never submits the form or merges a pull request. A GitHub redesign outside these fixtures may require an update
 
 ## License
 

@@ -1,6 +1,7 @@
+import { hasActiveCommentEditor } from './comment-dom';
 import { icons } from './icons';
 import { message } from './i18n';
-import { mountMergeHelper } from './merge-helper';
+import { mountMergeHelper, type MergeHelperHandle } from './merge-helper';
 
 export const STORAGE_KEY = 'gh-pr-comment-collapse:v3';
 export const LONG_COMMENT_PX = 140;
@@ -30,10 +31,13 @@ type Store = Record<string, PageState>;
 export class GitHubCommentCollapser {
   private store: Store;
   private lastTimelineSignature = '';
+  private globalRail: HTMLElement | null = null;
+  private timelineSummary: HTMLElement | null = null;
   private queued = false;
   private observer: MutationObserver | null = null;
   private enhancedBodies = new WeakMap<HTMLElement, HTMLElement>();
   private clickableBodies = new WeakSet<HTMLElement>();
+  private enhancedButtons = new WeakMap<HTMLElement, HTMLButtonElement>();
   private buttonIcons = new WeakMap<HTMLButtonElement, string>();
   private linkedTarget: HTMLElement | null = null;
   private lastLinkedTarget: HTMLElement | null = null;
@@ -41,7 +45,7 @@ export class GitHubCommentCollapser {
   private keyboardNavigation = false;
   private destroyed = false;
   private readonly bodyListeners: Array<() => void> = [];
-  private removeMergeHelper: (() => void) | null = null;
+  private removeMergeHelper: MergeHelperHandle | null = null;
   private pagePath = '';
 
   public constructor(
@@ -55,9 +59,22 @@ export class GitHubCommentCollapser {
   public start(): void {
     if (this.observer || this.destroyed) return;
 
-    this.observer = new MutationObserver(() => this.schedule());
+    this.observer = new MutationObserver((records) => {
+      if (
+        records.some(
+          (record) =>
+            record.type === 'childList' ||
+            (record.target instanceof Element &&
+              (record.target.matches('textarea, [contenteditable="true"]') ||
+                record.target.querySelector('textarea, [contenteditable="true"]'))),
+        )
+      )
+        this.schedule();
+    });
     this.observer.observe(this.pageDocument.documentElement, {
       childList: true,
+      attributes: true,
+      attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'],
       subtree: true,
     });
 
@@ -97,6 +114,7 @@ export class GitHubCommentCollapser {
 
     this.getHumanComments(host).forEach((comment) => this.enhanceComment(comment));
     this.renderGlobalRail(host);
+    this.removeMergeHelper?.refresh();
     const linkedTarget = this.revealLinkedTarget(host);
     this.renderTimeline(host, Boolean(linkedTarget));
     linkedTarget?.scrollIntoView?.({ block: 'nearest' });
@@ -130,8 +148,11 @@ export class GitHubCommentCollapser {
     });
     this.enhancedBodies = new WeakMap();
     this.clickableBodies = new WeakSet();
+    this.enhancedButtons = new WeakMap();
     this.buttonIcons = new WeakMap();
     this.lastTimelineSignature = '';
+    this.globalRail = null;
+    this.timelineSummary = null;
     this.linkedTarget = null;
     this.lastLinkedTarget = null;
     this.lastLinkedLocation = '';
@@ -235,7 +256,7 @@ export class GitHubCommentCollapser {
   }
 
   private editableComment(comment: HTMLElement): boolean {
-    return Boolean(comment.querySelector('textarea, [contenteditable="true"]'));
+    return hasActiveCommentEditor(comment, this.pageWindow);
   }
 
   private renderButton(button: HTMLButtonElement, icon: string, label: string): void {
@@ -292,7 +313,8 @@ export class GitHubCommentCollapser {
     if (!id || !body || !header) return;
     if (
       comment.dataset.tlprEnhanced === '1' &&
-      comment.querySelector('.tlpr-comment-toggle') &&
+      comment.querySelector('.tlpr-comment-toggle') === this.enhancedButtons.get(comment) &&
+      header.contains(this.enhancedButtons.get(comment) ?? null) &&
       this.enhancedBodies.get(comment) === body
     ) {
       return;
@@ -312,6 +334,7 @@ export class GitHubCommentCollapser {
     button.setAttribute('aria-controls', body.id);
     control.append(button);
     header.append(control);
+    this.enhancedButtons.set(comment, button);
 
     const saved = this.getPageState().comments[id];
     this.paintComment(
@@ -399,7 +422,7 @@ export class GitHubCommentCollapser {
     return [...host.querySelectorAll<HTMLElement>(COMMENT_SELECTOR)].filter(
       (comment) =>
         Boolean(this.getId(comment)) &&
-        Boolean(this.bodyOf(comment)) &&
+        this.bodyOf(comment)?.closest(COMMENT_SELECTOR) === comment &&
         !this.botComment(comment) &&
         !this.editableComment(comment),
     );
@@ -433,7 +456,10 @@ export class GitHubCommentCollapser {
   }
 
   private renderGlobalRail(host: HTMLElement): void {
-    if (host.querySelector('.tlpr-global-rail')) return;
+    if (this.globalRail && host.querySelector('.tlpr-global-rail') === this.globalRail) return;
+    host.querySelectorAll('.tlpr-global-rail').forEach((node) => node.remove());
+    this.removeMergeHelper?.();
+    this.removeMergeHelper = null;
     const rail = this.pageDocument.createElement('div');
     rail.className = 'tlpr-toolbar tlpr-global-rail';
     rail.setAttribute('role', 'group');
@@ -459,9 +485,15 @@ export class GitHubCommentCollapser {
     collapse.addEventListener('click', () => apply(true));
     rail.append(expand, collapse);
     host.prepend(rail);
+    this.globalRail = rail;
     if (this.options.mergeHelper && /\/pull\/\d+/.test(this.pageWindow.location.pathname)) {
-      this.removeMergeHelper?.();
       this.removeMergeHelper = mountMergeHelper(this.pageDocument, this.pageWindow, rail, {
+        mergeInsert: message('mergeInsert'),
+        mergeInserted: message('mergeInserted'),
+        mergeEdited: message('mergeEdited'),
+        mergeFormUnavailable: message('mergeFormUnavailable'),
+        mergeChooseSource: message('mergeChooseSource'),
+        mergePreview: message('mergePreview'),
         mergeOpen: message('mergeOpen'),
         mergeTitle: message('mergeTitle'),
         mergeDetectedNotice: message('mergeDetectedNotice'),
@@ -493,7 +525,9 @@ export class GitHubCommentCollapser {
     if (
       !force &&
       signature === this.lastTimelineSignature &&
-      (!needsSummary || host.querySelector('.tlpr-timeline-summary'))
+      (!needsSummary ||
+        (this.timelineSummary &&
+          host.querySelector('.tlpr-timeline-summary') === this.timelineSummary))
     ) {
       return;
     }
@@ -511,6 +545,7 @@ export class GitHubCommentCollapser {
       !hidden.some((item) => this.linkedTarget && item.contains(this.linkedTarget));
     const summary = this.pageDocument.createElement('div');
     summary.className = 'tlpr-timeline-summary';
+    this.timelineSummary = summary;
     summary.setAttribute('role', 'group');
     summary.setAttribute('aria-label', message('conversationControls'));
     const count = hidden.length;

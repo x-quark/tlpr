@@ -127,7 +127,7 @@
     "message": "Merge message helper"
   },
   "popupMergeHelperDescription": {
-    "message": "Prepare text to copy when you ask. Never merges a pull request."
+    "message": "Insert prepared text when you ask. Never merges a pull request."
   },
   "popupOptional": {
     "message": "Optional"
@@ -160,7 +160,7 @@
     "message": "Prepare merge text"
   },
   "mergeDetectedNotice": {
-    "message": "Template detected from the visible comment heading. The hidden marker cannot be verified here. Review the text before copying. No merge will be performed."
+    "message": "Source: the visible “Merge commit body” comment heading and its code block. The hidden marker cannot be verified here. Review the preview if needed. Insertion never merges the pull request."
   },
   "mergeCandidateLabel": {
     "message": "Comment to use"
@@ -197,5 +197,23 @@
   },
   "popupLanguageAutoShort": {
     "message": "Auto"
+  },
+  "mergeInsert": {
+    "message": "Insert"
+  },
+  "mergeInserted": {
+    "message": "Message inserted"
+  },
+  "mergeEdited": {
+    "message": "Your description has been edited. It was kept unchanged; the prepared text is below."
+  },
+  "mergeFormUnavailable": {
+    "message": "The merge form changed. Reopen it to insert the message."
+  },
+  "mergeChooseSource": {
+    "message": "Choose a comment, review its text, then select Insert."
+  },
+  "mergePreview": {
+    "message": "Preview source"
   }
 }

@@ -662,3 +662,51 @@ legend.tlpr-merge-candidate-label {
     transition: none;
   }
 }
+
+.tlpr-merge-form-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-block: 8px;
+  font-size: 12px;
+}
+
+.tlpr-merge-form-status {
+  color: var(--fgColor-muted, #59636e);
+}
+
+.tlpr-merge-form-preview summary {
+  color: var(--fgColor-accent, #0969da);
+  cursor: pointer;
+}
+
+.tlpr-merge-form-preview[open] {
+  flex-basis: 100%;
+  min-width: 0;
+}
+
+.tlpr-merge-form-preview p {
+  margin-block: 8px;
+  color: var(--fgColor-muted, #59636e);
+}
+
+.tlpr-merge-candidates:empty {
+  display: none;
+}
+
+.tlpr-merge-form-text {
+  max-height: 260px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  border-radius: 6px;
+  background: var(--bgColor-default, #fff);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font:
+    12px/1.6 ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+}
