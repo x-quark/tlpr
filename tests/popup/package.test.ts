@@ -12,12 +12,11 @@ describe('popup package boundaries', () => {
     expect(manifest).not.toHaveProperty('background');
   });
 
-  it('opens a local toolbar popup while preserving narrowly scoped GitHub injection', () => {
+  it('loads only a navigation bootstrap on GitHub without declarative page styles', () => {
     expect(manifest.action).toHaveProperty('default_popup', 'popup.html');
     expect(manifest.content_scripts).toEqual([
       {
-        matches: ['https://github.com/*/*/pull/*', 'https://github.com/*/*/issues/*'],
-        css: ['content.css'],
+        matches: ['https://github.com/*'],
         js: ['content.js'],
         run_at: 'document_idle',
       },

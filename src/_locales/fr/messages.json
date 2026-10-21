@@ -127,7 +127,7 @@
     "message": "Aide au message de fusion"
   },
   "popupMergeHelperDescription": {
-    "message": "Prépare un texte à copier à votre demande. Ne fusionne jamais de pull request."
+    "message": "Insère le texte préparé à votre demande. Ne fusionne jamais une pull request."
   },
   "popupOptional": {
     "message": "Facultatif"
@@ -160,7 +160,7 @@
     "message": "Préparer le message de fusion"
   },
   "mergeDetectedNotice": {
-    "message": "Modèle repéré grâce au titre visible du commentaire. Le marqueur masqué ne peut pas être vérifié ici. Vérifiez le texte avant de le copier. Aucune fusion ne sera effectuée."
+    "message": "Source : le titre visible « Merge commit body » du commentaire et son bloc de code. Le marqueur masqué ne peut pas être vérifié ici. Consultez l’aperçu si nécessaire. L’insertion ne fusionne jamais la pull request."
   },
   "mergeCandidateLabel": {
     "message": "Commentaire à utiliser"
@@ -197,5 +197,23 @@
   },
   "popupLanguageAutoShort": {
     "message": "Auto"
+  },
+  "mergeInsert": {
+    "message": "Insérer"
+  },
+  "mergeInserted": {
+    "message": "Message inséré"
+  },
+  "mergeEdited": {
+    "message": "Votre description a été modifiée. Elle est conservée ; le texte préparé est ci-dessous."
+  },
+  "mergeFormUnavailable": {
+    "message": "Le formulaire a changé. Rouvrez-le pour insérer le message."
+  },
+  "mergeChooseSource": {
+    "message": "Choisissez un commentaire, vérifiez le texte, puis cliquez sur Insérer."
+  },
+  "mergePreview": {
+    "message": "Voir la source"
   }
 }

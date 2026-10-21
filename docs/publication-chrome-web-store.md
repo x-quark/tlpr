@@ -9,8 +9,8 @@ pnpm check
 
 La commande produit et valide :
 
-- `release/tlpr-v0.2.0.zip`
-- `release/tlpr-v0.2.0.zip.sha256`
+- `release/tlpr-v0.2.1.zip`
+- `release/tlpr-v0.2.1.zip.sha256`
 - les icônes PNG 16, 32, 48 et 128 dans le paquet
 - les traductions anglaise et française
 - le texte complet de la licence `GPL-3.0-only`
@@ -114,7 +114,7 @@ Le compte éditeur doit être enregistré et utiliser un compte Google protégé
 2. Vérifier le checksum du ZIP et les sources incluses, identiques aux entrées de construction
 3. Ne déclencher aucune GitHub Action : pas de push sur `main`, de PR ni de tag tant qu’un chemin de publication sans CI n’est pas validé
 4. Vérifier les permissions, les interactions réelles et la politique de confidentialité publique à jour
-5. Ouvrir l’élément existant `ejclfjeilcfnjdocgnmloilcaocelgnp`, onglet Package, puis charger `release/tlpr-v0.2.0.zip` avec « Importer un nouveau package » ; ne pas créer un nouvel élément
+5. Ouvrir l’élément existant `ejclfjeilcfnjdocgnmloilcaocelgnp`, onglet Package, puis charger `release/tlpr-v0.2.1.zip` avec « Importer un nouveau package » ; ne pas créer un nouvel élément
 6. Ajouter les textes anglais et français
 7. Ajouter l’icône, la petite vignette, la bannière et la capture réelle
 8. Déclarer l’accès à `github.com` avec la justification ci-dessus

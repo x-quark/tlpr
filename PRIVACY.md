@@ -4,7 +4,7 @@
 
 Effective date: 2026-08-30
 
-Last updated: 2026-09-30
+Last updated: 2026-10-21
 
 ## Scope
 
@@ -14,14 +14,14 @@ This policy applies to the TL;PR Chrome extension published by x-quark
 
 TL;PR handles two Chrome Web Store user-data categories locally on the user’s device:
 
-- **Website content:** rendered GitHub comment and timeline elements are read to decide what to collapse and to provide the visible controls. The optional merge-text helper also reads the current PR title and an explicitly selected rendered template into a local preview. Their content is not saved by the extension
+- **Website content:** rendered GitHub comment and timeline elements are read to decide what to collapse and to provide the visible controls. The optional merge-text helper also reads the current PR title and an explicitly selected rendered template into a local preview or, on an explicit Insert click, the merge form’s extended description. It never submits that form or changes the default merge commit title. Their content is not saved by the extension
 - **Web history:** the path of each GitHub pull request or issue is stored locally as the key for its interface preferences
 
 TL;PR does not transmit, sell, share, or remotely process this information. It does not collect authentication information, personal data for profiling, or usage analytics
 
 ## Purpose limitation
 
-TL;PR uses rendered GitHub conversation content only on the user’s device and only to provide local reading controls and the explicitly enabled merge-text preview/copy helper. It does not use that content for advertising, analytics, profiling, or any unrelated purpose
+TL;PR uses rendered GitHub conversation content only on the user’s device and only to provide local reading controls and the explicitly enabled merge-text preview/copy/insertion helper. It does not use that content for advertising, analytics, profiling, or any unrelated purpose
 
 TL;PR’s use of information from GitHub pages complies with the [Chrome Web Store User Data Policy](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq), including its Limited Use requirements
 
@@ -42,12 +42,13 @@ The helper is disabled by default. Prepared message text exists only in the open
 
 ## Website access
 
-TL;PR runs only on GitHub pull request and issue URLs matching:
+TL;PR loads a navigation bootstrap on `https://github.com/*` to handle conversations opened without reloading the document. Outside supported numeric PR/issue conversations, it only reads the current URL and listens for navigation. It does not read page content, modify the DOM, collect, store, or transmit data there. Conversation styles and processing activate only on supported numeric routes matching:
 
-- `https://github.com/*/*/pull/*`
-- `https://github.com/*/*/issues/*`
+- `https://github.com/<owner>/<repo>/pull/<positive-number>`
+- `https://github.com/<owner>/<repo>/pull/<positive-number>/files`
+- `https://github.com/<owner>/<repo>/issues/<positive-number>`
 
-The extension reads and changes the rendered page to collapse, expand, hide, and reveal conversation elements, and to provide the optional user-triggered merge-text preview/copy helper. It does not read GitHub authentication tokens, call the GitHub API, or make network requests
+The extension reads and changes the rendered page to collapse, expand, hide, and reveal conversation elements, and to provide the optional user-triggered merge-text preview/copy/insertion helper. It does not read GitHub authentication tokens, call the GitHub API, or make network requests
 
 ## Third parties and remote code
 
