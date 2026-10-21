@@ -72,6 +72,8 @@ export class GitHubCommentCollapser {
         records.some(
           (record) =>
             record.type === 'childList' ||
+            (record.type === 'characterData' &&
+              Boolean(record.target.parentElement?.closest(BODY_SELECTOR))) ||
             (record.target instanceof Element &&
               (record.target.matches('textarea, [contenteditable="true"]') ||
                 record.target.querySelector('textarea, [contenteditable="true"]'))),
@@ -81,6 +83,7 @@ export class GitHubCommentCollapser {
     });
     this.observer.observe(this.pageDocument.documentElement, {
       childList: true,
+      characterData: true,
       attributes: true,
       attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'],
       subtree: true,
@@ -567,7 +570,11 @@ export class GitHubCommentCollapser {
 
   private clearTimelineControls(host: HTMLElement): void {
     host.querySelectorAll('.tlpr-timeline-summary').forEach((node) => node.remove());
-    this.getTimelineItems(host).forEach((item) => item.classList.remove('tlpr-timeline-hidden'));
+    this.getTimelineItems(host).forEach((item) => {
+      if (item.classList.contains('tlpr-timeline-hidden')) {
+        item.classList.remove('tlpr-timeline-hidden');
+      }
+    });
   }
 
   private renderGlobalRail(host: HTMLElement): void {
@@ -656,7 +663,10 @@ export class GitHubCommentCollapser {
       })
       .join('|');
 
-    const needsSummary = items.length > KEEP_LEADING_TIMELINE_ITEMS + KEEP_TRAILING_TIMELINE_ITEMS;
+    const hidden = items
+      .slice(KEEP_LEADING_TIMELINE_ITEMS, -KEEP_TRAILING_TIMELINE_ITEMS)
+      .filter((item) => !editingItems.has(item));
+    const needsSummary = hidden.length > 0;
     if (
       !force &&
       signature === this.lastTimelineSignature &&
@@ -673,10 +683,7 @@ export class GitHubCommentCollapser {
       return;
     }
 
-    const hidden = items
-      .slice(KEEP_LEADING_TIMELINE_ITEMS, -KEEP_TRAILING_TIMELINE_ITEMS)
-      .filter((item) => !editingItems.has(item));
-    if (hidden.length === 0) return;
+    if (!needsSummary) return;
     const state = this.getPageState();
     let collapsed =
       state.timelineCollapsed !== false &&
