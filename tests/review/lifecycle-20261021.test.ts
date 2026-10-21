@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GitHubCommentCollapser, STORAGE_KEY } from '../../src/content/controller';
 
 let controller: GitHubCommentCollapser;
@@ -248,5 +248,49 @@ describe('October 21 independent lifecycle regressions', () => {
     expect(
       document.querySelector<HTMLElement>('#issuecomment-3 .comment-body')!.dataset.tlprCollapsed,
     ).toBe('1');
+  });
+  it('reassesses in-place text mutations automatically without overriding manual choices', async () => {
+    document.body.innerHTML = `<main class="js-discussion">${item(0)}</main>`;
+    const body = document.querySelector<HTMLElement>('.comment-body')!;
+    Object.defineProperty(body, 'scrollHeight', {
+      get: () => ((body.textContent?.length ?? 0) > 50 ? 400 : 30),
+    });
+    controller = new GitHubCommentCollapser();
+    controller.start();
+    const settle = () =>
+      new Promise<void>((resolve) =>
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())),
+      );
+    await settle();
+    expect(body.dataset.tlprCollapsed).toBe('0');
+    body.firstChild!.nodeValue = 'Long content '.repeat(30);
+    await settle();
+    expect(body.dataset.tlprCollapsed).toBe('1');
+    document.querySelector<HTMLButtonElement>('.tlpr-comment-toggle')!.click();
+    body.firstChild!.nodeValue = 'Longer content '.repeat(40);
+    await settle();
+    expect(body.dataset.tlprCollapsed).toBe('0');
+    const scan = vi.spyOn(controller, 'scan');
+    await settle();
+    expect(scan).not.toHaveBeenCalled();
+    document.querySelector('.tlpr-comment-toggle span')!.firstChild!.nodeValue =
+      'Control text update';
+    await settle();
+    expect(scan).not.toHaveBeenCalled();
+  });
+  it('settles when all middle timeline items contain active editors', async () => {
+    mount(6, 2);
+    controller.start();
+    const scan = vi.spyOn(controller, 'scan');
+    const frames = async (count: number) => {
+      for (let i = 0; i < count; i++)
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+    };
+    await frames(5);
+    expect(document.querySelector('.tlpr-timeline-summary')).toBeNull();
+    expect(hidden(2)).toBe(false);
+    const settledCalls = scan.mock.calls.length;
+    await frames(4);
+    expect(scan.mock.calls.length).toBe(settledCalls);
   });
 });
