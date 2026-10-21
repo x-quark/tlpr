@@ -30,10 +30,11 @@ Long GitHub reviews become difficult to scan when replies, automated events, and
 
 TL;PR does not collect or transmit data. It includes no telemetry, analytics, remote service, or remotely hosted code
 
-The extension requests only the `storage` permission to remember toolbar settings locally. It has no background worker and requests no tabs, clipboard, or additional host permission. See [ADR 003](./journal/decisions/003-local-reading-settings.md). Its content script is limited to:
+The extension requests only the `storage` permission to remember toolbar settings locally. It has no background worker and requests no tabs, clipboard, or additional host permission. See [ADR 003](./journal/decisions/003-local-reading-settings.md). Its navigation bootstrap is declared on `https://github.com/*` so a conversation can activate after navigation without reloading. Outside numeric PR/issue conversations it only reads the URL and listens for navigation: no page-content reads, DOM changes, collection, or transmission. Styles and reading controls activate only in supported numeric conversations. See [ADR 005](./journal/decisions/005-github-navigation-bootstrap.md). Conversation routes include:
 
-- `https://github.com/*/*/pull/*`
-- `https://github.com/*/*/issues/*`
+- `https://github.com/<owner>/<repo>/pull/<positive-number>`
+- `https://github.com/<owner>/<repo>/pull/<positive-number>/files`
+- `https://github.com/<owner>/<repo>/issues/<positive-number>`
 
 Per-page folding preferences remain in GitHub site storage to preserve compatibility with the original userscript. Enablement, language, animation, state-color, and optional helper settings stay in `chrome.storage.local`. Read the [privacy policy](./PRIVACY.md) for the complete contract
 

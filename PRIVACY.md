@@ -4,7 +4,7 @@
 
 Effective date: 2026-08-30
 
-Last updated: 2026-10-08
+Last updated: 2026-10-21
 
 ## Scope
 
@@ -42,10 +42,11 @@ The helper is disabled by default. Prepared message text exists only in the open
 
 ## Website access
 
-TL;PR runs only on GitHub pull request and issue URLs matching:
+TL;PR loads a navigation bootstrap on `https://github.com/*` to handle conversations opened without reloading the document. Outside supported numeric PR/issue conversations, it only reads the current URL and listens for navigation. It does not read page content, modify the DOM, collect, store, or transmit data there. Conversation styles and processing activate only on supported numeric routes matching:
 
-- `https://github.com/*/*/pull/*`
-- `https://github.com/*/*/issues/*`
+- `https://github.com/<owner>/<repo>/pull/<positive-number>`
+- `https://github.com/<owner>/<repo>/pull/<positive-number>/files`
+- `https://github.com/<owner>/<repo>/issues/<positive-number>`
 
 The extension reads and changes the rendered page to collapse, expand, hide, and reveal conversation elements, and to provide the optional user-triggered merge-text preview/copy/insertion helper. It does not read GitHub authentication tokens, call the GitHub API, or make network requests
 

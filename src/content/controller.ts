@@ -1,3 +1,4 @@
+import { isConversationLocation } from './routes';
 import { hasActiveCommentEditor } from './comment-dom';
 import { icons } from './icons';
 import { message } from './i18n';
@@ -58,7 +59,7 @@ export class GitHubCommentCollapser {
   public constructor(
     private readonly pageDocument: Document = document,
     private readonly pageWindow: Window = window,
-    private readonly options: { mergeHelper?: boolean } = {},
+    private readonly options: { mergeHelper?: boolean; onOutOfScope?: () => void } = {},
   ) {
     this.store = this.readStore();
     this.savedStore = structuredClone(this.store);
@@ -68,6 +69,10 @@ export class GitHubCommentCollapser {
     if (this.observer || this.destroyed) return;
 
     this.observer = new MutationObserver((records) => {
+      if (!isConversationLocation(this.pageWindow.location)) {
+        this.scan();
+        return;
+      }
       if (
         records.some(
           (record) =>
@@ -115,6 +120,12 @@ export class GitHubCommentCollapser {
 
   public scan(): void {
     if (this.destroyed) return;
+    if (!isConversationLocation(this.pageWindow.location)) {
+      this.stop();
+      if (this.options.onOutOfScope) this.options.onOutOfScope();
+      else this.clearEffects();
+      return;
+    }
     for (const [body, remove] of this.bodyListeners) {
       if (!body.isConnected) {
         remove();
@@ -127,8 +138,6 @@ export class GitHubCommentCollapser {
       this.clearEffects();
       this.pagePath = pathname;
     }
-    if (!/\/(pull|issues)\/\d+/.test(pathname)) return;
-
     const host = this.pageDocument.querySelector<HTMLElement>(HOST_SELECTOR);
     if (!host) return;
 

@@ -4,7 +4,7 @@
 
 Date d’entrée en vigueur : 2026-08-30
 
-Dernière mise à jour : 2026-10-08
+Dernière mise à jour : 2026-10-21
 
 ## Périmètre
 
@@ -42,10 +42,11 @@ L’assistant est désactivé par défaut. Le texte préparé existe uniquement 
 
 ## Accès au site
 
-TL;PR s’exécute uniquement sur les URL de pull requests et d’issues GitHub correspondant à :
+TL;PR charge un bootstrap de navigation sur `https://github.com/*` pour gérer les conversations ouvertes sans rechargement du document. Hors conversations numériques de PR/issues prises en charge, il lit uniquement l’URL courante et écoute la navigation. Il ne lit pas le contenu, ne modifie pas le DOM, ne collecte, ne stocke et ne transmet aucune donnée sur ces pages. Les styles et traitements de conversation ne sont activés que sur les routes numériques prises en charge correspondant à :
 
-- `https://github.com/*/*/pull/*`
-- `https://github.com/*/*/issues/*`
+- `https://github.com/<owner>/<repo>/pull/<positive-number>`
+- `https://github.com/<owner>/<repo>/pull/<positive-number>/files`
+- `https://github.com/<owner>/<repo>/issues/<positive-number>`
 
 L’extension lit et modifie la page affichée pour replier, déplier, masquer et révéler des éléments de conversation, et fournir l’assistant optionnel de préparation, de copie et d’insertion déclenché par l’utilisateur. L’insertion remplit uniquement la description étendue à la demande explicite de l’utilisateur, sans changer le titre de commit par défaut ni soumettre le formulaire. Elle ne lit pas les jetons d’authentification GitHub, n’appelle pas l’API GitHub et n’effectue aucune requête réseau
 

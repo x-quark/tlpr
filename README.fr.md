@@ -30,10 +30,11 @@ Les longues revues GitHub deviennent difficiles à parcourir quand les réponses
 
 TL;PR ne collecte et ne transmet aucune donnée. Il ne contient ni télémétrie, ni analyse d’usage, ni service distant, ni code hébergé à distance
 
-L’extension demande uniquement la permission `storage` pour mémoriser localement les réglages de la barre d’outils. Elle ne possède aucun processus d’arrière-plan et ne demande aucune permission sur les onglets, le presse-papiers ou des sites supplémentaires. Voir [ADR 003](./journal/decisions/003-local-reading-settings.md). Son script de contenu est limité aux URL suivantes :
+L’extension demande uniquement la permission `storage` pour mémoriser localement les réglages de la barre d’outils. Elle ne possède aucun processus d’arrière-plan et ne demande aucune permission sur les onglets, le presse-papiers ou des sites supplémentaires. Voir [ADR 003](./journal/decisions/003-local-reading-settings.md). Son bootstrap de navigation est déclaré sur `https://github.com/*` afin d’activer une conversation ouverte sans rechargement. Hors conversations numériques de PR/issues, il lit uniquement l’URL et écoute la navigation : aucune lecture du contenu, modification DOM, collecte ou transmission. Les styles et commandes de lecture ne sont activés que dans les conversations numériques prises en charge. Voir [ADR 005](./journal/decisions/005-github-navigation-bootstrap.md). Les routes de conversation comprennent :
 
-- `https://github.com/*/*/pull/*`
-- `https://github.com/*/*/issues/*`
+- `https://github.com/<owner>/<repo>/pull/<positive-number>`
+- `https://github.com/<owner>/<repo>/pull/<positive-number>/files`
+- `https://github.com/<owner>/<repo>/issues/<positive-number>`
 
 Les préférences de repli par page restent dans le stockage local du site GitHub afin de préserver la compatibilité avec le userscript d’origine. L’activation, la langue, les animations, les couleurs d’état et l’assistant optionnel restent dans `chrome.storage.local`. Consultez la [politique de confidentialité](./PRIVACY.fr.md) pour le contrat complet
 

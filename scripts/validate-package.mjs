@@ -55,11 +55,13 @@ assert(
   'Host access must remain limited to static content scripts',
 );
 
-const expectedMatches = ['https://github.com/*/*/pull/*', 'https://github.com/*/*/issues/*'];
+const expectedMatches = ['https://github.com/*'];
 assert(
   JSON.stringify(manifest.content_scripts?.[0]?.matches) === JSON.stringify(expectedMatches),
-  'Content script matches must stay limited to GitHub pull requests and issues',
+  'Navigation bootstrap must stay limited to GitHub (ADR 005)',
 );
+
+assert(!manifest.content_scripts?.[0]?.css, 'Styles must activate only inside conversations');
 
 const sourceFiles = await collectSourceFiles(root);
 const requiredEntries = [
