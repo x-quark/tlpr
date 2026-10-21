@@ -30,7 +30,12 @@ type Store = Record<string, PageState>;
 
 export class GitHubCommentCollapser {
   private store: Store;
+  private savedStore: Store;
+  private readonly pendingComments = new Map<string, Set<string>>();
+  private readonly pendingTimelines = new Set<string>();
   private lastTimelineSignature = '';
+  private readonly timelineNodeIds = new WeakMap<HTMLElement, number>();
+  private nextTimelineNodeId = 0;
   private globalRail: HTMLElement | null = null;
   private timelineSummary: HTMLElement | null = null;
   private queued = false;
@@ -40,11 +45,12 @@ export class GitHubCommentCollapser {
   private enhancedButtons = new WeakMap<HTMLElement, HTMLButtonElement>();
   private buttonIcons = new WeakMap<HTMLButtonElement, string>();
   private linkedTarget: HTMLElement | null = null;
+  private linkedCommentManuallyToggled: HTMLElement | null = null;
   private lastLinkedTarget: HTMLElement | null = null;
   private lastLinkedLocation = '';
   private keyboardNavigation = false;
   private destroyed = false;
-  private readonly bodyListeners: Array<() => void> = [];
+  private readonly bodyListeners = new Map<HTMLElement, () => void>();
   private removeMergeHelper: MergeHelperHandle | null = null;
   private pagePath = '';
 
@@ -54,6 +60,7 @@ export class GitHubCommentCollapser {
     private readonly options: { mergeHelper?: boolean } = {},
   ) {
     this.store = this.readStore();
+    this.savedStore = structuredClone(this.store);
   }
 
   public start(): void {
@@ -84,6 +91,7 @@ export class GitHubCommentCollapser {
     this.pageWindow.addEventListener('hashchange', this.handleNavigation);
     this.pageDocument.addEventListener('keydown', this.handleKeyDown);
     this.pageDocument.addEventListener('pointerdown', this.handlePointerDown);
+    this.pageDocument.addEventListener('load', this.handleImageLoad, true);
 
     this.scan();
   }
@@ -98,10 +106,18 @@ export class GitHubCommentCollapser {
     this.pageWindow.removeEventListener('hashchange', this.handleNavigation);
     this.pageDocument.removeEventListener('keydown', this.handleKeyDown);
     this.pageDocument.removeEventListener('pointerdown', this.handlePointerDown);
+    this.pageDocument.removeEventListener('load', this.handleImageLoad, true);
   }
 
   public scan(): void {
     if (this.destroyed) return;
+    for (const [body, remove] of this.bodyListeners) {
+      if (!body.isConnected) {
+        remove();
+        this.bodyListeners.delete(body);
+        this.clickableBodies.delete(body);
+      }
+    }
     const pathname = this.pageWindow.location.pathname;
     if (pathname !== this.pagePath) {
       this.clearEffects();
@@ -129,7 +145,8 @@ export class GitHubCommentCollapser {
   private clearEffects(): void {
     this.removeMergeHelper?.();
     this.removeMergeHelper = null;
-    this.bodyListeners.splice(0).forEach((remove) => remove());
+    this.bodyListeners.forEach((remove) => remove());
+    this.bodyListeners.clear();
     this.pageDocument
       .querySelectorAll('.tlpr-control, .tlpr-timeline-summary, .tlpr-global-rail')
       .forEach((node) => node.remove());
@@ -154,6 +171,7 @@ export class GitHubCommentCollapser {
     this.globalRail = null;
     this.timelineSummary = null;
     this.linkedTarget = null;
+    this.linkedCommentManuallyToggled = null;
     this.lastLinkedTarget = null;
     this.lastLinkedLocation = '';
   }
@@ -161,9 +179,17 @@ export class GitHubCommentCollapser {
   private readonly handleNavigation = (): void => {
     this.lastTimelineSignature = '';
     this.linkedTarget = null;
+    this.linkedCommentManuallyToggled = null;
     this.lastLinkedTarget = null;
     this.lastLinkedLocation = '';
     this.schedule();
+  };
+
+  private readonly handleImageLoad = (event: Event): void => {
+    const target = event.target;
+    if (target instanceof Element && target.matches('img') && target.closest('.tlpr-body')) {
+      this.schedule();
+    }
   };
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
@@ -188,6 +214,7 @@ export class GitHubCommentCollapser {
     if (!target || !host.contains(target)) return null;
     if (linkedLocation === this.lastLinkedLocation && target === this.lastLinkedTarget) return null;
 
+    this.linkedCommentManuallyToggled = null;
     this.lastLinkedLocation = linkedLocation;
     this.lastLinkedTarget = target;
     this.linkedTarget = target;
@@ -210,14 +237,59 @@ export class GitHubCommentCollapser {
   private readStore(): Store {
     try {
       const parsed: unknown = JSON.parse(this.pageWindow.localStorage.getItem(STORAGE_KEY) ?? '{}');
-      return parsed && typeof parsed === 'object' ? (parsed as Store) : {};
+      const store: Store = {};
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return store;
+      for (const [key, value] of Object.entries(parsed)) {
+        if (!key.startsWith('/') || !value || typeof value !== 'object') continue;
+        const state = value as Partial<PageState>;
+        const comments = state.comments;
+        if (!comments || typeof comments !== 'object' || Array.isArray(comments)) continue;
+        store[key] = {
+          comments: Object.fromEntries(
+            Object.entries(comments).filter(([, collapsed]) => typeof collapsed === 'boolean'),
+          ),
+          timelineCollapsed: state.timelineCollapsed !== false,
+        };
+      }
+      return store;
     } catch {
       return {};
     }
   }
 
-  private saveStore(): void {
-    this.pageWindow.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.store));
+  private saveStore(commentIds: string[] = [], timelineChanged = false): void {
+    const merged = this.readStore();
+    const currentPath = this.pageWindow.location.pathname.replace(/\/$/, '');
+    const changedComments = this.pendingComments.get(currentPath) ?? new Set<string>();
+    commentIds.forEach((id) => changedComments.add(id));
+    this.pendingComments.set(currentPath, changedComments);
+    if (timelineChanged) this.pendingTimelines.add(currentPath);
+    for (const [key, current] of Object.entries(this.store)) {
+      const baseline = this.savedStore[key];
+      const latest = merged[key] ?? { comments: {}, timelineCollapsed: true };
+      for (const [id, collapsed] of Object.entries(current.comments)) {
+        if (baseline?.comments[id] !== collapsed || this.pendingComments.get(key)?.has(id)) {
+          latest.comments[id] = collapsed;
+        }
+      }
+      if (
+        baseline?.timelineCollapsed !== current.timelineCollapsed ||
+        this.pendingTimelines.has(key)
+      ) {
+        latest.timelineCollapsed = current.timelineCollapsed;
+      }
+      merged[key] = latest;
+    }
+    try {
+      this.pageWindow.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      this.store = merged;
+      this.savedStore = structuredClone(merged);
+      this.pendingComments.clear();
+      this.pendingTimelines.clear();
+    } catch {
+      // Reading controls remain usable when site storage is blocked or full.
+      // Retain the unsaved delta so a later successful write can persist it.
+    }
   }
 
   private getPageState(): PageState {
@@ -233,6 +305,7 @@ export class GitHubCommentCollapser {
       timelineCollapsed: true,
     };
     this.store[key] = initial;
+    this.savedStore[key] = structuredClone(initial);
     return initial;
   }
 
@@ -299,8 +372,11 @@ export class GitHubCommentCollapser {
     const id = this.getId(comment);
     if (!id) return;
 
+    if (this.linkedTarget && comment.contains(this.linkedTarget)) {
+      this.linkedCommentManuallyToggled = comment;
+    }
     this.getPageState().comments[id] = collapsed;
-    this.saveStore();
+    this.saveStore([id]);
     this.paintComment(comment, collapsed);
   }
 
@@ -317,6 +393,17 @@ export class GitHubCommentCollapser {
       header.contains(this.enhancedButtons.get(comment) ?? null) &&
       this.enhancedBodies.get(comment) === body
     ) {
+      // Hydration can change the content without replacing its surrounding nodes.
+      // Only automatic state may be recalculated: saved choices and direct links win.
+      if (
+        typeof this.getPageState().comments[id] !== 'boolean' &&
+        !(this.linkedTarget && comment.contains(this.linkedTarget))
+      ) {
+        const collapsed = body.scrollHeight > LONG_COMMENT_PX;
+        if (body.dataset.tlprCollapsed !== (collapsed ? '1' : '0')) {
+          this.paintComment(comment, collapsed);
+        }
+      }
       return;
     }
 
@@ -337,9 +424,17 @@ export class GitHubCommentCollapser {
     this.enhancedButtons.set(comment, button);
 
     const saved = this.getPageState().comments[id];
+    const keepLinkedExpansion =
+      this.linkedTarget &&
+      comment.contains(this.linkedTarget) &&
+      this.linkedCommentManuallyToggled !== comment;
     this.paintComment(
       comment,
-      typeof saved === 'boolean' ? saved : body.scrollHeight > LONG_COMMENT_PX,
+      keepLinkedExpansion
+        ? false
+        : typeof saved === 'boolean'
+          ? saved
+          : body.scrollHeight > LONG_COMMENT_PX,
     );
 
     button.addEventListener('click', (event) => {
@@ -406,7 +501,7 @@ export class GitHubCommentCollapser {
       body.addEventListener('pointerleave', clearRevealCue);
       body.addEventListener('pointercancel', clearRevealCue);
       body.addEventListener('pointerdown', clearRevealCue);
-      this.bodyListeners.push(() => {
+      this.bodyListeners.set(body, () => {
         body.removeEventListener('click', handleClick);
         body.removeEventListener('focusin', handleFocus);
         body.removeEventListener('pointermove', handlePointerMove);
@@ -414,6 +509,7 @@ export class GitHubCommentCollapser {
         body.removeEventListener('pointercancel', clearRevealCue);
         body.removeEventListener('pointerdown', clearRevealCue);
         clearRevealCue();
+        if (this.enhancedBodies.get(comment) === body) this.enhancedBodies.delete(comment);
       });
     }
   }
@@ -441,13 +537,23 @@ export class GitHubCommentCollapser {
       ),
     ];
 
-    return unique.filter(
-      (item) =>
-        Boolean(item.parentElement) &&
-        !unique.some((other) => other !== item && other.contains(item)) &&
-        !item.classList.contains('tlpr-timeline-summary') &&
-        !item.classList.contains('tlpr-toolbar'),
-    );
+    const candidates = new Set(unique);
+    return unique.filter((item) => {
+      if (
+        !item.parentElement ||
+        item.classList.contains('tlpr-timeline-summary') ||
+        item.classList.contains('tlpr-toolbar')
+      )
+        return false;
+      for (
+        let ancestor: HTMLElement | null = item.parentElement;
+        ancestor && ancestor !== host;
+        ancestor = ancestor.parentElement
+      ) {
+        if (candidates.has(ancestor)) return false;
+      }
+      return true;
+    });
   }
 
   private clearTimelineControls(host: HTMLElement): void {
@@ -471,14 +577,18 @@ export class GitHubCommentCollapser {
     const apply = (collapsed: boolean): void => {
       if (this.destroyed) return;
       const state = this.getPageState();
+      const changedIds: string[] = [];
       this.getHumanComments(host).forEach((comment) => {
         const id = this.getId(comment);
-        if (id) state.comments[id] = collapsed;
+        if (id) {
+          state.comments[id] = collapsed;
+          changedIds.push(id);
+        }
         this.paintComment(comment, collapsed);
       });
       state.timelineCollapsed = collapsed;
       this.linkedTarget = null;
-      this.saveStore();
+      this.saveStore(changedIds, true);
       this.renderTimeline(host, true);
     };
     expand.addEventListener('click', () => apply(false));
@@ -514,11 +624,23 @@ export class GitHubCommentCollapser {
 
   private renderTimeline(host: HTMLElement, force = false): void {
     const items = this.getTimelineItems(host);
+    const isEditing = (item: HTMLElement): boolean =>
+      [...item.querySelectorAll<HTMLElement>('textarea, [contenteditable="true"]')].some(
+        (editor) => {
+          const comment = editor.closest<HTMLElement>(COMMENT_SELECTOR);
+          return Boolean(comment && item.contains(comment) && this.editableComment(comment));
+        },
+      );
+    const editingItems = new Set(items.filter(isEditing));
     const signature = items
-      .map(
-        (item) =>
-          item.id || item.querySelector<HTMLElement>('[id]')?.id || item.textContent?.slice(0, 40),
-      )
+      .map((item) => {
+        let identity = this.timelineNodeIds.get(item);
+        if (identity === undefined) {
+          identity = ++this.nextTimelineNodeId;
+          this.timelineNodeIds.set(item, identity);
+        }
+        return `${identity}:${editingItems.has(item) ? 'editing' : 'reading'}`;
+      })
       .join('|');
 
     const needsSummary = items.length > KEEP_LEADING_TIMELINE_ITEMS + KEEP_TRAILING_TIMELINE_ITEMS;
@@ -538,7 +660,10 @@ export class GitHubCommentCollapser {
       return;
     }
 
-    const hidden = items.slice(KEEP_LEADING_TIMELINE_ITEMS, -KEEP_TRAILING_TIMELINE_ITEMS);
+    const hidden = items
+      .slice(KEEP_LEADING_TIMELINE_ITEMS, -KEEP_TRAILING_TIMELINE_ITEMS)
+      .filter((item) => !editingItems.has(item));
+    if (hidden.length === 0) return;
     const state = this.getPageState();
     let collapsed =
       state.timelineCollapsed !== false &&
@@ -579,7 +704,9 @@ export class GitHubCommentCollapser {
       this.renderButton(toggle, icons.down, message(collapsed ? 'show' : 'hide', String(count)));
       toggle.setAttribute('aria-expanded', String(!collapsed));
       summary.dataset.tlprCollapsed = collapsed ? '1' : '0';
-      hidden.forEach((item) => item.classList.toggle('tlpr-timeline-hidden', collapsed));
+      hidden.forEach((item) =>
+        item.classList.toggle('tlpr-timeline-hidden', collapsed && !isEditing(item)),
+      );
     };
     paint();
 
@@ -587,7 +714,7 @@ export class GitHubCommentCollapser {
       collapsed = !collapsed;
       this.linkedTarget = null;
       this.getPageState().timelineCollapsed = collapsed;
-      this.saveStore();
+      this.saveStore([], true);
       // Update in place so keyboard focus and the icon transition survive the click.
       paint();
     });
