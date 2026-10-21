@@ -164,4 +164,89 @@ describe('October 21 independent lifecycle regressions', () => {
     controller.scan();
     expect(document.querySelector<HTMLElement>('.comment-body')!.dataset.tlprCollapsed).toBe('1');
   });
+
+  it.each(['turbo:render', 'soft-nav:success'])(
+    'keeps manual collapse during %s at the same URL',
+    async (eventName) => {
+      window.history.replaceState({}, '', '/x-quark/tlpr/issues/1#issuecomment-0');
+      mount(1);
+      controller.start();
+      document.querySelector<HTMLButtonElement>('.tlpr-comment-toggle')!.click();
+      document.dispatchEvent(new Event(eventName));
+      await new Promise<void>((resolve) =>
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())),
+      );
+      expect(document.querySelector<HTMLElement>('.comment-body')!.dataset.tlprCollapsed).toBe('1');
+    },
+  );
+
+  it.each(['.tlpr-comment-toggle', '[data-tlpr-action="collapse-all"]'])(
+    'keeps collapse via %s when the linked comment itself is replaced',
+    (selector) => {
+      window.history.replaceState({}, '', '/x-quark/tlpr/issues/1#issuecomment-0');
+      mount(1);
+      document.querySelector<HTMLButtonElement>(selector)!.click();
+      const comment = document.querySelector('article')!;
+      comment.replaceWith(comment.cloneNode(true));
+      controller.scan();
+      expect(document.querySelector<HTMLElement>('.comment-body')!.dataset.tlprCollapsed).toBe('1');
+    },
+  );
+
+  it('opens the anchor again after the user actually navigates away and back', async () => {
+    window.history.replaceState({}, '', '/x-quark/tlpr/issues/1#issuecomment-0');
+    mount(1);
+    controller.start();
+    document.querySelector<HTMLButtonElement>('.tlpr-comment-toggle')!.click();
+    window.history.replaceState({}, '', '/x-quark/tlpr/issues/1');
+    window.dispatchEvent(new Event('hashchange'));
+    await new Promise<void>((resolve) =>
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())),
+    );
+    window.history.replaceState({}, '', '/x-quark/tlpr/issues/1#issuecomment-0');
+    window.dispatchEvent(new Event('hashchange'));
+    await new Promise<void>((resolve) =>
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())),
+    );
+    expect(document.querySelector<HTMLElement>('.comment-body')!.dataset.tlprCollapsed).toBe('0');
+  });
+  it.each(['.tlpr-timeline-toggle', '[data-tlpr-action="collapse-all"]'])(
+    'preserves explicit timeline collapse via %s when an anchor node is replaced',
+    (selector) => {
+      window.history.replaceState({}, '', '/x-quark/tlpr/issues/1#issuecomment-3');
+      mount(8);
+      document.querySelector<HTMLButtonElement>(selector)!.click();
+      expect(hidden(3)).toBe(true);
+      const comment = document.querySelector('#issuecomment-3')!;
+      comment.replaceWith(comment.cloneNode(true));
+      controller.scan();
+      expect(hidden(3)).toBe(true);
+    },
+  );
+  it('keeps comment link intent separate from explicit timeline toggles', () => {
+    window.history.replaceState({}, '', '/x-quark/tlpr/issues/1#issuecomment-3');
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        '/x-quark/tlpr/issues/1': { comments: { 'issuecomment-3': true }, timelineCollapsed: true },
+      }),
+    );
+    mount(8);
+    const toggle = document.querySelector<HTMLButtonElement>('.tlpr-timeline-toggle')!;
+    toggle.click();
+    toggle.click();
+    let header = document.querySelector('#issuecomment-3 header')!;
+    header.replaceWith(header.cloneNode(true));
+    controller.scan();
+    expect(
+      document.querySelector<HTMLElement>('#issuecomment-3 .comment-body')!.dataset.tlprCollapsed,
+    ).toBe('0');
+    document.querySelector<HTMLButtonElement>('#issuecomment-3 .tlpr-comment-toggle')!.click();
+    header = document.querySelector('#issuecomment-3 header')!;
+    header.replaceWith(header.cloneNode(true));
+    controller.scan();
+    expect(
+      document.querySelector<HTMLElement>('#issuecomment-3 .comment-body')!.dataset.tlprCollapsed,
+    ).toBe('1');
+  });
 });
