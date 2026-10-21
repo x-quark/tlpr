@@ -45,7 +45,8 @@ export class GitHubCommentCollapser {
   private enhancedButtons = new WeakMap<HTMLElement, HTMLButtonElement>();
   private buttonIcons = new WeakMap<HTMLButtonElement, string>();
   private linkedTarget: HTMLElement | null = null;
-  private linkedCommentManuallyToggled: HTMLElement | null = null;
+  private linkedCommentManuallyToggled = false;
+  private linkedTimelineManuallyToggled = false;
   private lastLinkedTarget: HTMLElement | null = null;
   private lastLinkedLocation = '';
   private keyboardNavigation = false;
@@ -171,17 +172,22 @@ export class GitHubCommentCollapser {
     this.globalRail = null;
     this.timelineSummary = null;
     this.linkedTarget = null;
-    this.linkedCommentManuallyToggled = null;
+    this.linkedCommentManuallyToggled = false;
+    this.linkedTimelineManuallyToggled = false;
     this.lastLinkedTarget = null;
     this.lastLinkedLocation = '';
   }
 
   private readonly handleNavigation = (): void => {
     this.lastTimelineSignature = '';
-    this.linkedTarget = null;
-    this.linkedCommentManuallyToggled = null;
-    this.lastLinkedTarget = null;
-    this.lastLinkedLocation = '';
+    const location = this.pageWindow.location;
+    if (`${location.pathname}${location.hash}` !== this.lastLinkedLocation) {
+      this.linkedTarget = null;
+      this.linkedCommentManuallyToggled = false;
+      this.linkedTimelineManuallyToggled = false;
+      this.lastLinkedTarget = null;
+      this.lastLinkedLocation = '';
+    }
     this.schedule();
   };
 
@@ -214,13 +220,16 @@ export class GitHubCommentCollapser {
     if (!target || !host.contains(target)) return null;
     if (linkedLocation === this.lastLinkedLocation && target === this.lastLinkedTarget) return null;
 
-    this.linkedCommentManuallyToggled = null;
+    if (linkedLocation !== this.lastLinkedLocation) {
+      this.linkedCommentManuallyToggled = false;
+      this.linkedTimelineManuallyToggled = false;
+    }
     this.lastLinkedLocation = linkedLocation;
     this.lastLinkedTarget = target;
-    this.linkedTarget = target;
+    this.linkedTarget = this.linkedTimelineManuallyToggled ? null : target;
     const comment = this.getHumanComments(host).find((item) => item.contains(target));
     // Following a link is temporary: do not replace the user's saved preferences.
-    if (comment) this.paintComment(comment, false);
+    if (comment && !this.linkedCommentManuallyToggled) this.paintComment(comment, false);
     return target;
   }
 
@@ -372,8 +381,8 @@ export class GitHubCommentCollapser {
     const id = this.getId(comment);
     if (!id) return;
 
-    if (this.linkedTarget && comment.contains(this.linkedTarget)) {
-      this.linkedCommentManuallyToggled = comment;
+    if (this.lastLinkedTarget && comment.contains(this.lastLinkedTarget)) {
+      this.linkedCommentManuallyToggled = true;
     }
     this.getPageState().comments[id] = collapsed;
     this.saveStore([id]);
@@ -397,7 +406,7 @@ export class GitHubCommentCollapser {
       // Only automatic state may be recalculated: saved choices and direct links win.
       if (
         typeof this.getPageState().comments[id] !== 'boolean' &&
-        !(this.linkedTarget && comment.contains(this.linkedTarget))
+        !(this.lastLinkedTarget && comment.contains(this.lastLinkedTarget))
       ) {
         const collapsed = body.scrollHeight > LONG_COMMENT_PX;
         if (body.dataset.tlprCollapsed !== (collapsed ? '1' : '0')) {
@@ -425,9 +434,9 @@ export class GitHubCommentCollapser {
 
     const saved = this.getPageState().comments[id];
     const keepLinkedExpansion =
-      this.linkedTarget &&
-      comment.contains(this.linkedTarget) &&
-      this.linkedCommentManuallyToggled !== comment;
+      this.lastLinkedTarget &&
+      comment.contains(this.lastLinkedTarget) &&
+      !this.linkedCommentManuallyToggled;
     this.paintComment(
       comment,
       keepLinkedExpansion
@@ -587,6 +596,10 @@ export class GitHubCommentCollapser {
         this.paintComment(comment, collapsed);
       });
       state.timelineCollapsed = collapsed;
+      if (this.lastLinkedLocation) {
+        this.linkedCommentManuallyToggled = true;
+        this.linkedTimelineManuallyToggled = true;
+      }
       this.linkedTarget = null;
       this.saveStore(changedIds, true);
       this.renderTimeline(host, true);
@@ -712,6 +725,7 @@ export class GitHubCommentCollapser {
 
     toggle.addEventListener('click', () => {
       collapsed = !collapsed;
+      if (this.lastLinkedLocation) this.linkedTimelineManuallyToggled = true;
       this.linkedTarget = null;
       this.getPageState().timelineCollapsed = collapsed;
       this.saveStore([], true);
