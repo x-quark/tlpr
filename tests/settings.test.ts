@@ -51,6 +51,23 @@ describe('local extension settings', () => {
     expect(values).toEqual({});
   });
 
+  it('preserves an explicit English or French choice when reading and saving other settings', async () => {
+    for (const language of ['en', 'fr'] as const) {
+      values[key] = { ...DEFAULT_SETTINGS, language };
+      expect((await readSettings()).language).toBe(language);
+      expect((await saveSettings({ animations: false })).language).toBe(language);
+      expect((values[key] as { language: string }).language).toBe(language);
+    }
+  });
+
+  it('falls back to browser detection for missing or malformed language without writing a migration', async () => {
+    for (const value of [{}, { language: 'de' }, { language: null }, null]) {
+      values[key] = value;
+      expect((await readSettings()).language).toBe('auto');
+      expect(values[key]).toBe(value);
+    }
+  });
+
   it('reads valid persisted settings from the versioned local key', async () => {
     values[key] = {
       enabled: false,
@@ -116,6 +133,32 @@ describe('local extension settings', () => {
     expect(values).toEqual({});
     writeError = undefined;
     expect(await saveSettings({ enabled: false })).toEqual({ ...DEFAULT_SETTINGS, enabled: false });
+  });
+
+  it('continues an already queued patch after a quota rejection without replaying the failed preference', async () => {
+    values[key] = { ...DEFAULT_SETTINGS, language: 'fr' };
+    const set = vi.spyOn(chrome.storage.local, 'set');
+    set.mockRejectedValueOnce(new DOMException('Full', 'QuotaExceededError'));
+    const failed = saveSettings({ enabled: false });
+    const succeeding = saveSettings({ animations: false });
+    await expect(failed).rejects.toThrow('Full');
+    await expect(succeeding).resolves.toEqual({
+      ...DEFAULT_SETTINGS,
+      language: 'fr',
+      animations: false,
+    });
+    expect(values[key]).toEqual({ ...DEFAULT_SETTINGS, language: 'fr', animations: false });
+  });
+
+  it('does not replace stored preferences with defaults when the read preceding a write fails', async () => {
+    const original = { ...DEFAULT_SETTINGS, language: 'fr', mergeHelper: true };
+    values[key] = original;
+    readError = new Error('Read denied');
+    await expect(saveSettings({ enabled: false })).rejects.toThrow('Read denied');
+    expect(values[key]).toBe(original);
+    readError = undefined;
+    await saveSettings({ stateColors: false });
+    expect(values[key]).toEqual({ ...original, stateColors: false });
   });
 
   it('only subscribes to local settings, sanitizes changes, and unsubscribes', () => {

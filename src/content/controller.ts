@@ -18,6 +18,13 @@ const TIMELINE_ITEM_SELECTOR =
   '.TimelineItem, .js-timeline-item, .timeline-comment-wrapper, .js-comment-container, .timeline-comment, .react-issue-comment';
 const HOST_SELECTOR =
   '#discussion_bucket .js-discussion, .js-discussion, .new-discussion-timeline, [data-testid="issue-viewer-container"]';
+const HYDRATION_SELECTOR = [
+  COMMENT_SELECTOR,
+  BODY_SELECTOR,
+  HEADER_SELECTOR,
+  HOST_SELECTOR,
+  TIMELINE_ITEM_SELECTOR,
+].join(', ');
 const NAVIGATION_EVENTS = ['turbo:load', 'turbo:render', 'soft-nav:success'] as const;
 const INTERACTIVE_SELECTOR =
   'a, button, input, select, textarea, summary, label, [role="button"], [role="link"], [contenteditable="true"], [tabindex]';
@@ -55,6 +62,7 @@ export class GitHubCommentCollapser {
   private readonly bodyListeners = new Map<HTMLElement, () => void>();
   private removeMergeHelper: MergeHelperHandle | null = null;
   private pagePath = '';
+  private scanEditors: WeakMap<HTMLElement, boolean> | null = null;
 
   public constructor(
     private readonly pageDocument: Document = document,
@@ -77,11 +85,19 @@ export class GitHubCommentCollapser {
         records.some(
           (record) =>
             record.type === 'childList' ||
+            (record.type === 'attributes' && record.attributeName === 'contenteditable') ||
+            (record.type === 'attributes' &&
+              ['class', 'id', 'data-testid'].includes(record.attributeName ?? '') &&
+              record.target instanceof Element &&
+              (record.target.matches(HYDRATION_SELECTOR) ||
+                record.target.closest(COMMENT_SELECTOR) ||
+                record.target.querySelector(COMMENT_SELECTOR))) ||
             (record.type === 'characterData' &&
               Boolean(record.target.parentElement?.closest(BODY_SELECTOR))) ||
             (record.target instanceof Element &&
-              (record.target.matches('textarea, [contenteditable="true"]') ||
-                record.target.querySelector('textarea, [contenteditable="true"]'))),
+              (record.target.matches('textarea, [contenteditable]') ||
+                record.target.querySelector('textarea, [contenteditable]') ||
+                record.target.closest('[contenteditable]'))),
         )
       )
         this.schedule();
@@ -90,7 +106,15 @@ export class GitHubCommentCollapser {
       childList: true,
       characterData: true,
       attributes: true,
-      attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'],
+      attributeFilter: [
+        'class',
+        'id',
+        'data-testid',
+        'style',
+        'hidden',
+        'aria-hidden',
+        'contenteditable',
+      ],
       subtree: true,
     });
 
@@ -141,12 +165,31 @@ export class GitHubCommentCollapser {
     const host = this.pageDocument.querySelector<HTMLElement>(HOST_SELECTOR);
     if (!host) return;
 
-    this.getHumanComments(host).forEach((comment) => this.enhanceComment(comment));
-    this.renderGlobalRail(host);
-    this.removeMergeHelper?.refresh();
-    const linkedTarget = this.revealLinkedTarget(host);
-    this.renderTimeline(host, Boolean(linkedTarget));
-    linkedTarget?.scrollIntoView?.({ block: 'nearest' });
+    // A scan is synchronous. Reuse visibility checks only within this pass, never
+    // across DOM mutations, user interactions or subsequent scans.
+    const previousEditors = this.scanEditors;
+    this.scanEditors = new WeakMap();
+    try {
+      // GitHub may reuse a folded body as its editor. Suspend only our effects,
+      // leaving the draft, native styles and persisted reading preference untouched.
+      host.querySelectorAll<HTMLElement>('[data-tlpr-enhanced]').forEach((comment) => {
+        if (!this.editableComment(comment)) return;
+        const body = this.bodyOf(comment);
+        if (body?.classList.contains('tlpr-body')) {
+          body.classList.remove('tlpr-body');
+          body.style.removeProperty('--tlpr-reveal-proximity');
+        }
+        comment.querySelector('.tlpr-control')?.remove();
+      });
+      this.getHumanComments(host).forEach((comment) => this.enhanceComment(comment));
+      this.renderGlobalRail(host);
+      this.removeMergeHelper?.refresh();
+      const linkedTarget = this.revealLinkedTarget(host);
+      this.renderTimeline(host, Boolean(linkedTarget));
+      linkedTarget?.scrollIntoView?.({ block: 'nearest' });
+    } finally {
+      this.scanEditors = previousEditors;
+    }
   }
 
   public destroy(): void {
@@ -163,13 +206,15 @@ export class GitHubCommentCollapser {
     this.pageDocument
       .querySelectorAll('.tlpr-control, .tlpr-timeline-summary, .tlpr-global-rail')
       .forEach((node) => node.remove());
-    this.pageDocument.querySelectorAll<HTMLElement>('.tlpr-body').forEach((body) => {
-      body.classList.remove('tlpr-body');
-      if (body.id === body.dataset.tlprGeneratedId) body.removeAttribute('id');
-      delete body.dataset.tlprGeneratedId;
-      delete body.dataset.tlprCollapsed;
-      body.style.removeProperty('--tlpr-reveal-proximity');
-    });
+    this.pageDocument
+      .querySelectorAll<HTMLElement>('.tlpr-body, [data-tlpr-collapsed]')
+      .forEach((body) => {
+        body.classList.remove('tlpr-body');
+        if (body.id === body.dataset.tlprGeneratedId) body.removeAttribute('id');
+        delete body.dataset.tlprGeneratedId;
+        delete body.dataset.tlprCollapsed;
+        body.style.removeProperty('--tlpr-reveal-proximity');
+      });
     this.pageDocument.querySelectorAll<HTMLElement>('[data-tlpr-enhanced]').forEach((comment) => {
       delete comment.dataset.tlprEnhanced;
     });
@@ -350,7 +395,11 @@ export class GitHubCommentCollapser {
   }
 
   private editableComment(comment: HTMLElement): boolean {
-    return hasActiveCommentEditor(comment, this.pageWindow);
+    const cached = this.scanEditors?.get(comment);
+    if (cached !== undefined) return cached;
+    const active = hasActiveCommentEditor(comment, this.pageWindow);
+    this.scanEditors?.set(comment, active);
+    return active;
   }
 
   private renderButton(button: HTMLButtonElement, icon: string, label: string): void {
@@ -401,6 +450,22 @@ export class GitHubCommentCollapser {
     this.paintComment(comment, collapsed);
   }
 
+  private reconcileBodyTarget(
+    body: HTMLElement,
+    button: HTMLButtonElement,
+    commentId: string,
+  ): void {
+    if (!body.id) {
+      body.id = `tlpr-body-${commentId}`;
+      body.dataset.tlprGeneratedId = body.id;
+    } else if (body.dataset.tlprGeneratedId && body.dataset.tlprGeneratedId !== body.id) {
+      // The application replaced our generated ID; it now owns the current one.
+      delete body.dataset.tlprGeneratedId;
+    }
+    if (button.getAttribute('aria-controls') !== body.id)
+      button.setAttribute('aria-controls', body.id);
+  }
+
   private enhanceComment(comment: HTMLElement): void {
     if (this.botComment(comment) || this.editableComment(comment)) return;
 
@@ -414,16 +479,25 @@ export class GitHubCommentCollapser {
       header.contains(this.enhancedButtons.get(comment) ?? null) &&
       this.enhancedBodies.get(comment) === body
     ) {
-      // Hydration can change the content without replacing its surrounding nodes.
-      // Only automatic state may be recalculated: saved choices and direct links win.
+      // Reconcile extension-owned effects as well as node identity: hydration may
+      // replace className or id without replacing the body or its control.
+      const button = this.enhancedButtons.get(comment)!;
+      this.reconcileBodyTarget(body, button, id);
+      const saved = this.getPageState().comments[id];
+      const keepLinkedExpansion =
+        this.lastLinkedTarget &&
+        comment.contains(this.lastLinkedTarget) &&
+        !this.linkedCommentManuallyToggled;
+      const collapsed = keepLinkedExpansion
+        ? false
+        : typeof saved === 'boolean'
+          ? saved
+          : body.scrollHeight > LONG_COMMENT_PX;
       if (
-        typeof this.getPageState().comments[id] !== 'boolean' &&
-        !(this.lastLinkedTarget && comment.contains(this.lastLinkedTarget))
+        !body.classList.contains('tlpr-body') ||
+        body.dataset.tlprCollapsed !== (collapsed ? '1' : '0')
       ) {
-        const collapsed = body.scrollHeight > LONG_COMMENT_PX;
-        if (body.dataset.tlprCollapsed !== (collapsed ? '1' : '0')) {
-          this.paintComment(comment, collapsed);
-        }
+        this.paintComment(comment, collapsed);
       }
       return;
     }
@@ -435,11 +509,7 @@ export class GitHubCommentCollapser {
     const control = this.pageDocument.createElement('span');
     control.className = 'tlpr-control';
     const button = this.makeButton(icons.down, message('collapse'), 'tlpr-btn tlpr-comment-toggle');
-    if (!body.id) {
-      body.id = `tlpr-body-${id}`;
-      body.dataset.tlprGeneratedId = body.id;
-    }
-    button.setAttribute('aria-controls', body.id);
+    this.reconcileBodyTarget(body, button, id);
     control.append(button);
     header.append(control);
     this.enhancedButtons.set(comment, button);
@@ -654,11 +724,8 @@ export class GitHubCommentCollapser {
   private renderTimeline(host: HTMLElement, force = false): void {
     const items = this.getTimelineItems(host);
     const isEditing = (item: HTMLElement): boolean =>
-      [...item.querySelectorAll<HTMLElement>('textarea, [contenteditable="true"]')].some(
-        (editor) => {
-          const comment = editor.closest<HTMLElement>(COMMENT_SELECTOR);
-          return Boolean(comment && item.contains(comment) && this.editableComment(comment));
-        },
+      [item, ...item.querySelectorAll<HTMLElement>(COMMENT_SELECTOR)].some(
+        (comment) => comment.matches(COMMENT_SELECTOR) && this.editableComment(comment),
       );
     const editingItems = new Set(items.filter(isEditing));
     const signature = items
