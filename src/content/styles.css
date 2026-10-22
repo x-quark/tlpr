@@ -106,7 +106,7 @@
   pointer-events: none;
 }
 
-.tlpr-timeline-hidden {
+.tlpr-timeline-hidden:not([data-tlpr-checking-editor]) {
   display: none !important;
 }
 

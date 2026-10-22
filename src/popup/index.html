@@ -12,19 +12,56 @@
       <header class="hero">
         <div class="brand-line">
           <span class="wordmark" aria-label="TL;PR">TL<span>;</span>PR</span>
-          <span class="activity" data-activity></span>
+          <div class="header-actions">
+            <span class="activity" data-activity></span>
+            <button
+              class="info-toggle"
+              type="button"
+              data-info-toggle
+              aria-expanded="false"
+              aria-controls="popup-info"
+              aria-haspopup="dialog"
+              data-i18n="popupInfo"
+            ></button>
+          </div>
         </div>
-        <p class="eyebrow" data-i18n="popupEyebrow"></p>
-        <h1 data-i18n="popupHeading"></h1>
-        <p class="intro" data-i18n="popupIntro"></p>
+        <h1 class="visually-hidden" data-i18n="popupTitle"></h1>
       </header>
+      <section
+        id="popup-info"
+        class="info-panel"
+        role="dialog"
+        aria-labelledby="info-title"
+        tabindex="-1"
+        hidden
+      >
+        <div class="info-heading">
+          <h2 id="info-title" data-i18n="popupAbout"></h2>
+          <span class="version"
+            ><span data-i18n="popupVersion"></span> <span data-version></span
+          ></span>
+        </div>
+        <p class="privacy" data-i18n="popupPrivacy"></p>
+      </section>
       <form aria-busy="true">
         <fieldset disabled>
           <legend class="visually-hidden" data-i18n="popupTitle"></legend>
           <div class="setting-row primary-setting">
             <div class="setting-copy">
-              <label for="enabled" data-i18n="popupEnabled"></label>
-              <p id="enabled-description" data-i18n="popupEnabledDescription"></p>
+              <label
+                for="enabled"
+                data-help
+                aria-describedby="enabled-description"
+                tabindex="0"
+                data-i18n="popupEnabled"
+              ></label
+              ><span
+                id="enabled-description"
+                class="tooltip"
+                role="tooltip"
+                data-i18n="popupEnabledDescription"
+                hidden
+              ></span>
             </div>
             <input
               id="enabled"
@@ -34,52 +71,103 @@
               aria-describedby="enabled-description"
             />
           </div>
-          <section aria-labelledby="preferences-title">
-            <h2 id="preferences-title" data-i18n="popupPreferences"></h2>
+          <div class="preferences">
             <div class="setting-row language-row">
               <div class="setting-copy">
-                <span id="language-label" class="setting-label" data-i18n="popupLanguage"></span>
-                <p id="language-description" data-i18n="popupLanguageDescription"></p>
+                <span
+                  id="language-label"
+                  class="setting-label"
+                  data-help
+                  aria-describedby="language-description"
+                  tabindex="0"
+                  data-i18n="popupLanguage"
+                ></span
+                ><span
+                  id="language-description"
+                  class="tooltip"
+                  role="tooltip"
+                  data-i18n="popupLanguageDescription"
+                  hidden
+                ></span>
               </div>
-              <div
-                class="language-segments"
-                role="radiogroup"
-                aria-labelledby="language-label"
-                aria-describedby="language-description"
-              >
-                <input
-                  class="language-radio"
-                  id="language-auto"
-                  name="language"
-                  type="radio"
-                  value="auto"
-                />
-                <label for="language-auto">
-                  <span aria-hidden="true" data-i18n="popupLanguageAutoShort"></span>
-                  <span class="visually-hidden" data-i18n="popupLanguageAuto"></span>
-                </label>
-                <input
-                  class="language-radio"
-                  id="language-fr"
-                  name="language"
-                  type="radio"
-                  value="fr"
-                />
-                <label for="language-fr" data-i18n="popupLanguageFrench"></label>
-                <input
-                  class="language-radio"
-                  id="language-en"
-                  name="language"
-                  type="radio"
-                  value="en"
-                />
-                <label for="language-en" data-i18n="popupLanguageEnglish"></label>
+              <div class="language-select">
+                <button
+                  type="button"
+                  data-language-toggle
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="language-options"
+                  aria-labelledby="language-label language-value"
+                >
+                  <span id="language-value"></span
+                  ><svg
+                    class="select-chevron"
+                    viewBox="0 0 16 16"
+                    width="16"
+                    height="16"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="m4 6 4 4 4-4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </button>
+                <div
+                  id="language-options"
+                  class="language-options"
+                  role="listbox"
+                  aria-labelledby="language-label"
+                  hidden
+                >
+                  <button
+                    type="button"
+                    role="option"
+                    data-language="auto"
+                    aria-selected="false"
+                    tabindex="-1"
+                    data-i18n="popupLanguageAuto"
+                  ></button>
+                  <button
+                    type="button"
+                    role="option"
+                    data-language="fr"
+                    aria-selected="false"
+                    tabindex="-1"
+                    data-i18n="popupLanguageFrench"
+                  ></button>
+                  <button
+                    type="button"
+                    role="option"
+                    data-language="en"
+                    aria-selected="false"
+                    tabindex="-1"
+                    data-i18n="popupLanguageEnglish"
+                  ></button>
+                </div>
               </div>
             </div>
             <div class="setting-row">
               <div class="setting-copy">
-                <label for="animations" data-i18n="popupAnimations"></label>
-                <p id="animations-description" data-i18n="popupAnimationsDescription"></p>
+                <label
+                  for="animations"
+                  data-help
+                  aria-describedby="animations-description"
+                  tabindex="0"
+                  data-i18n="popupAnimations"
+                ></label
+                ><span
+                  id="animations-description"
+                  class="tooltip"
+                  role="tooltip"
+                  data-i18n="popupAnimationsDescription"
+                  hidden
+                ></span>
               </div>
               <input
                 id="animations"
@@ -91,8 +179,20 @@
             </div>
             <div class="setting-row">
               <div class="setting-copy">
-                <label for="stateColors" data-i18n="popupStateColors"></label>
-                <p id="colors-description" data-i18n="popupStateColorsDescription"></p>
+                <label
+                  for="stateColors"
+                  data-help
+                  aria-describedby="colors-description"
+                  tabindex="0"
+                  data-i18n="popupStateColors"
+                ></label
+                ><span
+                  id="colors-description"
+                  class="tooltip"
+                  role="tooltip"
+                  data-i18n="popupStateColorsDescription"
+                  hidden
+                ></span>
               </div>
               <input
                 id="stateColors"
@@ -102,14 +202,25 @@
                 aria-describedby="colors-description"
               />
             </div>
-          </section>
+          </div>
           <section class="helper-section" aria-labelledby="helper-title">
-            <h2 id="helper-title" data-i18n="popupHelperSection"></h2>
+            <h2 id="helper-title" class="visually-hidden" data-i18n="popupHelperSection"></h2>
             <div class="setting-row">
               <div class="setting-copy">
-                <label for="mergeHelper" data-i18n="popupMergeHelper"></label>
-                <span class="optional" data-i18n="popupOptional"></span>
-                <p id="helper-description" data-i18n="popupMergeHelperDescription"></p>
+                <label
+                  for="mergeHelper"
+                  data-help
+                  aria-describedby="helper-description"
+                  tabindex="0"
+                  data-i18n="popupMergeHelper"
+                ></label
+                ><span
+                  id="helper-description"
+                  class="tooltip"
+                  role="tooltip"
+                  data-i18n="popupMergeHelperDescription"
+                  hidden
+                ></span>
               </div>
               <input
                 id="mergeHelper"
@@ -126,7 +237,6 @@
         <p class="feedback" role="status" aria-live="polite" aria-atomic="true"></p>
         <p class="error" role="alert" aria-atomic="true"></p>
         <button class="retry" type="button" data-retry data-i18n="popupRetry" hidden></button>
-        <p class="privacy" data-i18n="popupPrivacy"></p>
       </footer>
     </main>
   </body>

@@ -17,7 +17,8 @@ Les longues revues GitHub deviennent difficiles à parcourir quand les réponses
 - Déplie le milieu masqué à la demande
 - Garde les commandes globales de repli et de dépliage accessibles pendant le défilement
 - Distingue les états par des accents, des chevrons et des libellés accessibles
-- Propose des réglages d’activation, de langue, d’animations et de couleurs d’état
+- Propose des réglages compacts d’activation, de langue, d’animations et de couleurs d’état
+- Affiche une aide contextuelle sur les intitulés (survol ou focus clavier) ; conserve confidentialité et version dans Infos
 - Inclut un assistant optionnel de préparation et d’insertion du message de fusion, désactivé par défaut
 - Conserve le focus clavier sur les commandes de chronologie et révèle le contenu ciblé
 - Révèle temporairement les commentaires liés sans remplacer les préférences de repli enregistrées
@@ -25,6 +26,7 @@ Les longues revues GitHub deviennent difficiles à parcourir quand les réponses
 - Ignore les commentaires de bots et les commentaires en cours d’édition
 - Fonctionne sur les pull requests et les issues GitHub
 - Fournit les interfaces anglaise et française
+- Suit par défaut la langue du navigateur, avec repli en anglais pour les langues non prises en charge ; les choix manuels sont conservés
 
 ## Confidentialité et permissions
 
@@ -73,8 +75,8 @@ pnpm validate:package
 
 Les fichiers suivants sont produits :
 
-- `release/tlpr-v0.2.1.zip`
-- `release/tlpr-v0.2.1.zip.sha256`
+- `release/tlpr-v0.2.2.zip`
+- `release/tlpr-v0.2.2.zip.sha256`
 
 Le ZIP contient directement `manifest.json`, la licence GPL et une notice `SOURCE.md` à sa racine. Le code source correspondant complet est inclus dans `source/`, avec les scripts de construction et le fichier de verrouillage des dépendances. Aucun tag Git publié n’est nécessaire pour obtenir ces sources
 

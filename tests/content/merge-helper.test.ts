@@ -646,6 +646,51 @@ describe('insertion lifecycle guards', () => {
     button.click();
     expect(field.value).toBe('Improve example behavior');
   });
+  it.each([
+    'readOnly',
+    'disabled',
+    'hidden description',
+    'hidden title',
+    'ambiguous title',
+  ] as const)('revalidates %s at click time without writing or emitting form events', (state) => {
+    const { field, button, form } = setup();
+    const original = field.value;
+    const events: string[] = [];
+    for (const name of ['input', 'change', 'submit']) {
+      form.addEventListener(name, (event) => {
+        events.push(event.type);
+        event.preventDefault();
+      });
+    }
+    if (state === 'readOnly' || state === 'disabled') field[state] = true;
+    else if (state === 'hidden description') field.hidden = true;
+    else if (state === 'hidden title') form.querySelector<HTMLInputElement>('#ct')!.hidden = true;
+    else {
+      const duplicate = form
+        .querySelector<HTMLInputElement>('#ct')!
+        .cloneNode(true) as HTMLInputElement;
+      duplicate.id = 'duplicate-title';
+      duplicate.name = 'commit_title';
+      form.append(duplicate);
+    }
+    button.click();
+    expect(field.value).toBe(original);
+    expect(events).toEqual([]);
+    expect(form.querySelector('.tlpr-merge-form-status')?.textContent).toBe(
+      labels.mergeFormUnavailable,
+    );
+  });
+
+  it('leaves retained insertion controls inert after cleanup and does not remount on refresh', () => {
+    const { field, button, handle } = setup();
+    const original = field.value;
+    handle();
+    button.click();
+    handle.refresh();
+    expect(field.value).toBe(original);
+    expect(document.querySelector('.tlpr-merge-form-controls')).toBeNull();
+  });
+
   it('replaces cloned enhancement controls without leaving an inert duplicate', () => {
     const { form, handle } = setup();
     const clone = form.cloneNode(true) as HTMLFormElement;

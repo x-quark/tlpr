@@ -1,6 +1,6 @@
 {
   "name": "tlpr",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A focused Chrome extension for readable GitHub pull request and issue conversations",
   "private": true,
   "license": "GPL-3.0-only",

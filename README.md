@@ -17,7 +17,8 @@ Long GitHub reviews become difficult to scan when replies, automated events, and
 - Reveals the folded middle on demand
 - Keeps concise global expand/collapse controls within reach while scrolling
 - Shows folded/expanded state with accents, chevrons, and accessible labels
-- Offers toolbar settings for enablement, language, animations, and state colors
+- Offers compact toolbar settings for enablement, language, animations, and state colors
+- Shows contextual help on setting titles (hover or keyboard focus); keeps privacy and version in Info
 - Includes an optional, off-by-default merge-text preview and insertion helper
 - Keeps keyboard focus on timeline controls and reveals focused comment content
 - Temporarily reveals linked comments without overwriting saved folding preferences
@@ -25,6 +26,7 @@ Long GitHub reviews become difficult to scan when replies, automated events, and
 - Ignores bot comments and comments being edited
 - Runs on GitHub pull requests and issues
 - Includes English and French interfaces
+- Follows the browser language by default, falling back to English for unsupported languages; manual choices are preserved
 
 ## Privacy and permissions
 
@@ -73,8 +75,8 @@ pnpm validate:package
 
 The commands produce:
 
-- `release/tlpr-v0.2.1.zip`
-- `release/tlpr-v0.2.1.zip.sha256`
+- `release/tlpr-v0.2.2.zip`
+- `release/tlpr-v0.2.2.zip.sha256`
 
 The ZIP contains `manifest.json`, the GPL license, and a `SOURCE.md` notice at its root. The complete corresponding source is bundled under `source/`, including build scripts and the dependency lockfile. No published Git tag is required to obtain these source files
 

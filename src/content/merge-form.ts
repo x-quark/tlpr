@@ -62,18 +62,16 @@ export function mountMergeFormControls(
     }
     if (!/\/pull\/\d+(?:\/|$)/.test(pageWindow.location.pathname)) return;
     for (const field of pageDocument.querySelectorAll<HTMLTextAreaElement>('textarea')) {
-      if (
-        mounted.has(field) ||
-        !isVisible(field, pageWindow) ||
-        field.closest('.tlpr-merge-dialog')
-      )
-        continue;
+      if (mounted.has(field) || field.closest('.tlpr-merge-dialog')) continue;
       if (
         field.name !== 'commit_message' &&
         field.id !== 'merge_message_field' &&
         !labelled(field, 'Extended description')
       )
         continue;
+      // Ignore unrelated comment editors before walking computed ancestor styles.
+      // Visibility stays live for actual merge candidates; nothing is cached.
+      if (!isVisible(field, pageWindow)) continue;
       const commitTitle = titleFieldFor(field);
       if (!commitTitle || !isCurrentMergeTitle(commitTitle, pageWindow)) continue;
       const page = `${pageWindow.location.origin}${pageWindow.location.pathname}`;

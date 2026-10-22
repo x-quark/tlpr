@@ -215,5 +215,14 @@
   },
   "mergePreview": {
     "message": "Voir la source"
+  },
+  "popupInfo": {
+    "message": "Infos"
+  },
+  "popupAbout": {
+    "message": "À propos"
+  },
+  "popupVersion": {
+    "message": "Version"
   }
 }

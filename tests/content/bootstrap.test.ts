@@ -238,6 +238,74 @@ describe('navigation-only bootstrap', () => {
     expect(document.querySelector('.tlpr-global-rail')).toBeNull();
     expect(document.head.querySelector('[data-tlpr-styles]')).toBeNull();
   });
+  it('recovers from an asynchronous settings read failure only after a valid settings notification', async () => {
+    fixture();
+    let notify!: (value: Settings) => void;
+    const settings = {
+      read: async (): Promise<Settings> => {
+        throw new Error('Unavailable');
+      },
+      subscribe: (listener: (value: Settings) => void) => {
+        notify = listener;
+        return () => {};
+      },
+    };
+    bootstrap = new ConversationBootstrap(document, window, settings);
+    bootstrap.start();
+    await flush();
+    expect(document.querySelector('.tlpr-global-rail')).toBeNull();
+    expect(document.head.querySelector('[data-tlpr-styles]')).toBeNull();
+    notify(DEFAULT_SETTINGS);
+    expect(document.querySelectorAll('.tlpr-global-rail')).toHaveLength(1);
+  });
+
+  it('does not undo newer valid settings when an older asynchronous read rejects', async () => {
+    fixture();
+    let reject!: (reason: Error) => void;
+    let notify!: (value: Settings) => void;
+    bootstrap = new ConversationBootstrap(document, window, {
+      read: () =>
+        new Promise<Settings>((_resolve, fail) => {
+          reject = fail;
+        }),
+      subscribe: (listener) => {
+        notify = listener;
+        return () => {};
+      },
+    });
+    bootstrap.start();
+    notify(DEFAULT_SETTINGS);
+    reject(new Error('Stale read unavailable'));
+    await flush();
+    expect(document.querySelectorAll('.tlpr-global-rail')).toHaveLength(1);
+    expect(document.head.querySelectorAll('[data-tlpr-styles]')).toHaveLength(1);
+  });
+
+  it('does not resurrect effects or storage subscriptions after destruction with a pending read', async () => {
+    fixture();
+    let resolve!: (value: Settings) => void;
+    const unsubscribe = vi.fn();
+    const settings = {
+      read: vi.fn(
+        () =>
+          new Promise<Settings>((done) => {
+            resolve = done;
+          }),
+      ),
+      subscribe: () => unsubscribe,
+    };
+    bootstrap = new ConversationBootstrap(document, window, settings);
+    bootstrap.start();
+    bootstrap.destroy();
+    resolve(DEFAULT_SETTINGS);
+    navigate('/x-quark/tlpr/pull/2');
+    await flush();
+    expect(document.querySelector('.tlpr-global-rail')).toBeNull();
+    expect(document.head.querySelector('[data-tlpr-styles]')).toBeNull();
+    expect(settings.read).toHaveBeenCalledTimes(1);
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+  });
+
   it('disconnects immediately on an off-route mutation before the navigation event and can re-enter', async () => {
     fixture();
     const unsubscribe = vi.fn();
