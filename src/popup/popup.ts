@@ -219,13 +219,7 @@ export async function mountPopup(root: Document): Promise<() => void> {
     );
   }
   function reconcileHelp(): void {
-    const focused = help.find(({ trigger }) => trigger === root.activeElement);
-    const current =
-      hovered && !dismissed.has(hovered)
-        ? hovered
-        : focused && !dismissed.has(focused)
-          ? focused
-          : undefined;
+    const current = hovered && !dismissed.has(hovered) ? hovered : undefined;
     for (const item of help) item.tooltip.hidden = item !== current;
   }
   function dismissHelp(): boolean {
@@ -256,12 +250,6 @@ export async function mountPopup(root: Document): Promise<() => void> {
       reconcileHelp();
     }, 250);
   };
-  const onHelpFocus = (event: FocusEvent) => {
-    const item = help.find(({ trigger }) => trigger === event.target);
-    if (item) dismissed.delete(item);
-    reconcileHelp();
-  };
-  const onHelpBlur = () => reconcileHelp();
   function closeInfo(restoreFocus = false): void {
     infoPanel.hidden = true;
     infoToggle.setAttribute('aria-expanded', 'false');
@@ -305,8 +293,6 @@ export async function mountPopup(root: Document): Promise<() => void> {
   root.addEventListener('keydown', onInfoEscape);
   root.addEventListener('mouseover', onHelpOver);
   root.addEventListener('mouseout', onHelpOut);
-  root.addEventListener('focusin', onHelpFocus);
-  root.addEventListener('focusout', onHelpBlur);
   form.addEventListener('submit', preventSubmit);
   form.addEventListener('change', onChange);
   form.addEventListener('keydown', onLanguageKey);
@@ -334,8 +320,6 @@ export async function mountPopup(root: Document): Promise<() => void> {
     root.removeEventListener('keydown', onInfoEscape);
     root.removeEventListener('mouseover', onHelpOver);
     root.removeEventListener('mouseout', onHelpOut);
-    root.removeEventListener('focusin', onHelpFocus);
-    root.removeEventListener('focusout', onHelpBlur);
     unsubscribe();
     form.removeEventListener('submit', preventSubmit);
     form.removeEventListener('change', onChange);

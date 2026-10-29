@@ -57,11 +57,6 @@
   color: var(--fgColor-onEmphasis, #ffffff) !important;
 }
 
-.tlpr-btn:focus-visible {
-  outline: 2px solid var(--focus-outlineColor, #0969da);
-  outline-offset: 2px;
-}
-
 .tlpr-btn svg {
   width: 16px;
   height: 16px;
@@ -242,11 +237,6 @@
     opacity 220ms ease-out;
 }
 
-[data-tlpr-enhanced='1']:has(.tlpr-comment-toggle:focus-visible)
-  .tlpr-body[data-tlpr-collapsed='1']::before {
-  --tlpr-reveal-proximity: 1;
-}
-
 [data-tlpr-enhanced='1']:has(textarea, [contenteditable='true'])
   .tlpr-body[data-tlpr-collapsed='1']::before {
   display: none;
@@ -393,13 +383,6 @@
 .tlpr-merge-open {
   background: transparent;
   border-color: transparent;
-}
-
-.tlpr-merge-open:focus-visible,
-.tlpr-merge-dialog button:focus-visible,
-.tlpr-merge-dialog textarea:focus-visible {
-  outline: 2px solid var(--focus-outlineColor, #0969da);
-  outline-offset: 3px;
 }
 
 .tlpr-merge-overlay {
@@ -643,11 +626,6 @@ legend.tlpr-merge-candidate-label {
   background: var(--bgColor-accent-muted, #0969da0d);
 }
 
-.tlpr-merge-candidate-option:has(:focus-visible) {
-  outline: 2px solid var(--focus-outlineColor, #0969da);
-  outline-offset: 3px;
-}
-
 .tlpr-merge-candidate-option:has(:disabled) {
   opacity: 0.55;
   cursor: default;
@@ -709,4 +687,10 @@ legend.tlpr-merge-candidate-label {
     SFMono-Regular,
     Consolas,
     monospace;
+}
+
+/* Focus remains functional, never a visual state. Content rules only target TLPR UI. */
+:is([class^='tlpr-'], [class*=' tlpr-'], .tlpr-merge-dialog *):focus,
+:is([class^='tlpr-'], [class*=' tlpr-'], .tlpr-merge-dialog *):focus-visible {
+  outline: none !important;
 }
