@@ -183,14 +183,14 @@ describe('toolbar popup', () => {
     expect(document.querySelector('#preferences-title')).toBeNull();
   });
 
-  it('restores text-focused help after another title hover and preserves Escape dismissal', async () => {
+  it('never reveals help for focused text after another title hover and preserves Escape dismissal', async () => {
     cleanup = await mountPopup(document);
     const first = document.querySelector<HTMLElement>('label[for="enabled"]')!;
     const second = document.querySelector<HTMLElement>('label[for="animations"]')!;
     const firstHelp = document.getElementById('enabled-description')!;
     const secondHelp = document.getElementById('animations-description')!;
     first.focus();
-    expect(firstHelp.hidden).toBe(false);
+    expect(firstHelp.hidden).toBe(true);
     second.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     expect(secondHelp.hidden).toBe(false);
     expect(firstHelp.hidden).toBe(true);
@@ -198,7 +198,10 @@ describe('toolbar popup', () => {
       new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }),
     );
     expect(document.activeElement).toBe(first);
-    await vi.waitFor(() => expect(firstHelp.hidden).toBe(false));
+    await vi.waitFor(() => expect(secondHelp.hidden).toBe(true));
+    expect(firstHelp.hidden).toBe(true);
+    first.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    expect(firstHelp.hidden).toBe(false);
     first.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
     );

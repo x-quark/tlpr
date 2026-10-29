@@ -75,8 +75,8 @@ pnpm validate:package
 
 Les fichiers suivants sont produits :
 
-- `release/tlpr-v0.2.2.zip`
-- `release/tlpr-v0.2.2.zip.sha256`
+- `release/tlpr-v0.2.3.zip`
+- `release/tlpr-v0.2.3.zip.sha256`
 
 Le ZIP contient directement `manifest.json`, la licence GPL et une notice `SOURCE.md` à sa racine. Le code source correspondant complet est inclus dans `source/`, avec les scripts de construction et le fichier de verrouillage des dépendances. Aucun tag Git publié n’est nécessaire pour obtenir ces sources
 

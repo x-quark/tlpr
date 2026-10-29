@@ -1,6 +1,6 @@
 {
   "name": "tlpr",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "A focused Chrome extension for readable GitHub pull request and issue conversations",
   "private": true,
   "license": "GPL-3.0-only",
@@ -21,7 +21,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm package && pnpm validate:package"
+    "check": "pnpm test:focus && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm package && pnpm validate:package",
+    "test:focus": "node --test tests/zero-focus.test.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
