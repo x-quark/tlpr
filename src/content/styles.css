@@ -734,12 +734,6 @@ legend.tlpr-merge-candidate-label {
   overflow-wrap: anywhere;
 }
 
-.tlpr-merge-form-subject[data-kept='true'] {
-  color: var(--fgColor-muted, #59636e);
-  font-weight: 400;
-  font-style: italic;
-}
-
 .tlpr-merge-source-link {
   display: inline-block;
   margin-top: 8px;

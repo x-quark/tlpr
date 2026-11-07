@@ -17,7 +17,6 @@ const labels: MergeFormLabels = {
   mergeCandidateLatest: 'latest',
   mergeSubjectLabel: 'Commit message',
   mergeDescriptionLabel: 'Extended description',
-  mergeKeepsTitle: 'Kept',
   mergeMissingTitle: 'Missing',
   mergeNoCandidates: 'None',
   mergeViewSource: 'Source',

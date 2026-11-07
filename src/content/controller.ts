@@ -940,7 +940,6 @@ export class GitHubCommentCollapser {
         mergeCandidateLatest: message('mergeCandidateLatest'),
         mergeSubjectLabel: message('mergeSubjectLabel'),
         mergeDescriptionLabel: message('mergeDescriptionLabel'),
-        mergeKeepsTitle: message('mergeKeepsTitle'),
         mergePreviewLabel: message('mergePreviewLabel'),
         mergeMissingTitle: message('mergeMissingTitle'),
         mergeNoCandidates: message('mergeNoCandidates'),

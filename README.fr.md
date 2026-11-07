@@ -77,8 +77,8 @@ pnpm validate:package
 
 Les fichiers suivants sont produits :
 
-- `release/tlpr-v0.3.1.zip`
-- `release/tlpr-v0.3.1.zip.sha256`
+- `release/tlpr-v0.3.2.zip`
+- `release/tlpr-v0.3.2.zip.sha256`
 
 Le ZIP contient directement `manifest.json`, la licence GPL et une notice `SOURCE.md` à sa racine. Le code source correspondant complet est inclus dans `source/`, avec les scripts de construction et le fichier de verrouillage des dépendances. Aucun tag Git publié n’est nécessaire pour obtenir ces sources
 
@@ -114,7 +114,7 @@ tests/                   Tests de parité fonctionnelle
 
 TL;PR conserve les règles de repli par défaut et le format de stockage du userscript tout en affinant ses commandes de lecture. La fenêtre de réglages applique les changements aux conversations ouvertes sans rechargement. Il ne propose ni synchronisation entre appareils, ni prise en charge de GitHub Enterprise. Des fixtures automatisées couvrent des structures représentatives classiques, d’issues React, de la page Overview des pull requests et de revue, ainsi que le remplacement de nœuds DOM, le mode édition, la navigation SPA entre pages, le focus clavier, les contrôles intégrés, la sélection de texte et les liens vers les commentaires. La page Overview, en préversion publique GitHub depuis le 2026-11-05, nécessite un compte inscrit : sa fixture est reconstruite depuis le bundle public de la page GitHub, et le contrôleur a aussi été exécuté sur une pull request Overview réelle. Les structures classique et React ont été sondées sur des pages publiques réelles. Voir [ADR 006](./journal/decisions/006-github-overview-and-merge-proposals.md)
 
-L’assistant optionnel lit les propositions affichées dans la conversation : une section « 🧾 Proposed merge commit » ou « 🧾 Merge commit body » avec un bloc de code, ou un commentaire composé d’un seul bloc ` ```git `. Lorsque le formulaire de confirmation de fusion GitHub est ouvert, en ligne ou dans la boîte de dialogue Overview, **Insérer le message proposé** remplit **Commit message** avec le sujet et **Extended description** avec le corps d’un message complet. Un modèle limité au corps conserve le titre GitHub et se place sous le titre de la PR. La proposition la plus récente est présélectionnée et chaque proposition reste sélectionnable avec un aperçu. Le texte saisi n’est remplacé qu’après une seconde confirmation, et **Annuler** restaure les deux champs. L’assistant ne peut pas vérifier un marqueur Markdown masqué depuis le HTML affiché, ne récupère aucune donnée d’API privée et ne soumet jamais le formulaire ni ne fusionne de pull request. Une évolution de GitHub hors de ces fixtures peut nécessiter une mise à jour
+L’assistant optionnel lit les propositions affichées dans la conversation : une section « 🧾 Proposed merge commit » ou « 🧾 Merge commit body » avec un bloc de code, ou un commentaire composé d’un seul bloc ` ```git `. Lorsque le formulaire de confirmation de fusion GitHub est ouvert, en ligne ou dans la boîte de dialogue Overview, **Insérer le message proposé** remplit **Commit message** avec le sujet et **Extended description** avec le corps d’un message complet. Un modèle limité au corps, comme une liste « 🧾 Merge commit body », devient la description étendue, et le message de commit prend le titre de la PR sans son emoji initial suivi de `(#numéro)`, comme ces pull requests sont fusionnées en pratique. La proposition la plus récente est présélectionnée et chaque proposition reste sélectionnable avec un aperçu. Le texte saisi n’est remplacé qu’après une seconde confirmation, et **Annuler** restaure les deux champs. L’assistant ne peut pas vérifier un marqueur Markdown masqué depuis le HTML affiché, ne récupère aucune donnée d’API privée et ne soumet jamais le formulaire ni ne fusionne de pull request. Une évolution de GitHub hors de ces fixtures peut nécessiter une mise à jour
 
 ## Licence
 
