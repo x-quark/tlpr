@@ -9,8 +9,8 @@ pnpm check
 
 La commande produit et valide :
 
-- `release/tlpr-v0.2.3.zip`
-- `release/tlpr-v0.2.3.zip.sha256`
+- `release/tlpr-v0.3.0.zip`
+- `release/tlpr-v0.3.0.zip.sha256`
 - les icônes PNG 16, 32, 48 et 128 dans le paquet
 - les traductions anglaise et française
 - le texte complet de la licence `GPL-3.0-only`
@@ -46,7 +46,7 @@ Chrome n’accepte pas les SVG comme icônes du manifeste. Les SVG restent les s
 
 > TL;PR reduces visual noise in long GitHub pull request and issue conversations without changing their content
 >
-> Long human comments collapse automatically and remain expandable with one click. When a timeline becomes crowded, TL;PR keeps the first two and last three items visible while folding the middle behind a compact summary. Dedicated controls can collapse or expand every human comment on the page
+> Long human comments collapse automatically and remain expandable with one click. When a timeline becomes crowded, TL;PR keeps the first two and last three items visible while folding the middle behind a compact summary. Dedicated controls can collapse or expand every human comment on the page. TL;PR works with the classic conversation and the new pull request Overview page, and keeps the timeline in chronological order even when GitHub lists the newest comments first
 >
 > Bot comments and comments being edited are left untouched. TL;PR processes rendered GitHub conversation content and page paths only on the user’s device. Display preferences remain on the device and are stored per GitHub page. TL;PR never transmits this information and contains no analytics, telemetry, remote service, or remotely hosted code
 
@@ -64,7 +64,7 @@ Chrome n’accepte pas les SVG comme icônes du manifeste. Les SVG restent les s
 
 > TL;PR réduit le bruit visuel des longues conversations de pull requests et d’issues GitHub sans modifier leur contenu
 >
-> Les commentaires humains longs sont automatiquement repliés et restent dépliables en un clic. Lorsqu’une chronologie devient chargée, TL;PR conserve les deux premiers et les trois derniers éléments visibles et replie le milieu derrière un résumé compact. Des contrôles dédiés permettent de replier ou déplier tous les commentaires humains de la page
+> Les commentaires humains longs sont automatiquement repliés et restent dépliables en un clic. Lorsqu’une chronologie devient chargée, TL;PR conserve les deux premiers et les trois derniers éléments visibles et replie le milieu derrière un résumé compact. Des contrôles dédiés permettent de replier ou déplier tous les commentaires humains de la page. TL;PR fonctionne avec la conversation classique et la nouvelle page Overview des pull requests, et respecte l’ordre chronologique même quand GitHub affiche les commentaires les plus récents en premier
 >
 > Les commentaires de bots et les commentaires en cours d’édition restent intacts. TL;PR traite le contenu des conversations GitHub affichées et les chemins des pages uniquement sur l’appareil de l’utilisateur. Les préférences d’affichage restent sur l’appareil et sont stockées par page GitHub. TL;PR ne transmet jamais ces informations et ne contient ni analyse d’usage, ni télémétrie, ni service distant, ni code hébergé à distance
 
@@ -77,7 +77,7 @@ Chrome n’accepte pas les SVG comme icônes du manifeste. Les SVG restent les s
 - Analyse d’usage : aucune
 - Code distant : aucun
 - Requêtes réseau propres à l’extension : aucune
-- Permission nommée : `storage`, uniquement pour les cinq préférences locales de la fenêtre de réglages (activation, langue, animations, couleurs d’état et assistant optionnel)
+- Permission nommée : `storage`, uniquement pour les six préférences locales de la fenêtre de réglages (activation, langue, vue GitHub, animations, couleurs d’état et assistant optionnel)
 - Accès hôte : pages de pull requests et d’issues sur `github.com`
 - Code distant : sélectionner **No, I am not using remote code**
 - Politique publique : `https://github.com/x-quark/tlpr/blob/main/PRIVACY.md`
@@ -114,7 +114,7 @@ Le compte éditeur doit être enregistré et utiliser un compte Google protégé
 2. Vérifier le checksum du ZIP et les sources incluses, identiques aux entrées de construction
 3. Ne déclencher aucune GitHub Action : pas de push sur `main`, de PR ni de tag tant qu’un chemin de publication sans CI n’est pas validé
 4. Vérifier les permissions, les interactions réelles et la politique de confidentialité publique à jour
-5. Ouvrir l’élément existant `ejclfjeilcfnjdocgnmloilcaocelgnp`, onglet Package, puis charger `release/tlpr-v0.2.3.zip` avec « Importer un nouveau package » ; ne pas créer un nouvel élément
+5. Ouvrir l’élément existant `ejclfjeilcfnjdocgnmloilcaocelgnp`, onglet Package, puis charger `release/tlpr-v0.3.0.zip` avec « Importer un nouveau package » ; ne pas créer un nouvel élément
 6. Ajouter les textes anglais et français
 7. Ajouter l’icône, la petite vignette, la bannière et la capture réelle
 8. Déclarer l’accès à `github.com` avec la justification ci-dessus
@@ -130,6 +130,8 @@ Le compte éditeur doit être enregistré et utiliser un compte Google protégé
 - Désactiver le userscript Tampermonkey équivalent
 - Vérifier une pull request avec plus de cinq éléments de chronologie
 - Vérifier une issue avec plus de cinq éléments de chronologie
+- Vérifier une pull request en vue Overview (préversion GitHub) puis en vue classique avec `?overview=false`
+- Vérifier l’insertion du message de fusion proposé dans un formulaire de fusion, sans confirmer la fusion
 - Vérifier les thèmes GitHub clair et sombre
 - Vérifier l’interface Chrome en anglais et en français
 - Vérifier qu’un commentaire de bot et un commentaire en édition restent intacts

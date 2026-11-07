@@ -4,19 +4,25 @@ import { mountMergeHelper, type MergeHelperLabels } from '../../src/content/merg
 
 const labels: MergeHelperLabels = {
   mergeInsert: 'Insert',
+  mergeReplace: 'Replace my edits',
   mergeInserted: 'Message inserted',
-  mergeEdited:
-    'Your description has been edited. It was kept unchanged; the prepared text is below.',
+  mergeUndo: 'Undo',
+  mergeUndone: 'Previous text restored.',
+  mergeEdited: 'You edited this message. Select “Replace my edits” to use the proposal anyway.',
   mergeFormUnavailable: 'The merge form changed. Reopen it to insert the message.',
-  mergeChooseSource: 'Choose a comment, review its text, then select Insert.',
+  mergeChooseSource: 'The chosen proposal changed. Check the preview, then insert again.',
   mergePreview: 'Preview source',
+  mergeCandidateLatest: 'latest',
+  mergeSubjectLabel: 'Commit message',
+  mergeDescriptionLabel: 'Extended description',
+  mergeKeepsTitle: 'Unchanged (GitHub default)',
+  mergeViewSource: 'View source comment',
 
   mergeOpen: 'Preview merge text',
   mergeTitle: 'Merge text preview',
   mergeDetectedNotice:
     'Detected from a visible heading. Review before copying; the raw marker is not verified.',
   mergeCandidateLabel: 'Choose a detected comment',
-  mergeCandidatePlaceholder: 'Choose a comment',
   mergeCandidateOption: 'Comment {count}',
   mergePreviewLabel: 'Text to copy',
   mergeMissingTitle: 'The pull request title could not be read.',
@@ -83,8 +89,9 @@ describe('mountMergeHelper', () => {
 
     opener.click();
 
+    // The renderer's final newline is dropped; Markdown, indentation and spaces are exact.
     expect(preview().value).toBe(
-      'Improve example behavior\n\n- Preserve **Markdown**\n\n  Indented detail  \n',
+      'Improve example behavior\n\n- Preserve **Markdown**\n\n  Indented detail  ',
     );
     expect(preview().readOnly).toBe(true);
     expect(copyButton().disabled).toBe(false);
@@ -139,7 +146,7 @@ describe('mountMergeHelper', () => {
     },
   );
 
-  it('requires an explicit selection when multiple comments qualify', () => {
+  it('preselects the latest of several proposals and keeps every choice switchable', () => {
     start(
       mountPage([comment(markedBody('First body'), '1'), comment(markedBody('Second body'), '2')]),
     ).click();
@@ -149,25 +156,22 @@ describe('mountMergeHelper', () => {
     expect(group.tagName).toBe('FIELDSET');
     expect(group.querySelector('legend')?.textContent).toBe(labels.mergeCandidateLabel);
     expect(choices).toHaveLength(2);
-    expect(choices.every((choice) => !choice.checked)).toBe(true);
+    expect(choices.map((choice) => choice.checked)).toEqual([false, true]);
     expect(choices[0]!.name).toBe(choices[1]!.name);
     expect(choices.map((choice) => choice.labels?.[0]?.textContent)).toEqual([
       'Comment 1',
-      'Comment 2',
+      'Comment 2 · latest',
     ]);
-    expect(preview().value).toBe('');
-    expect(copyButton().disabled).toBe(true);
-
-    choices[1]!.labels![0]!.click();
-    expect(choices[1]!.checked).toBe(true);
-    expect(choices[0]!.checked).toBe(false);
     expect(preview().value).toBe('Improve example behavior\n\nSecond body');
     expect(copyButton().disabled).toBe(false);
 
-    choices[0]!.click();
+    choices[0]!.labels![0]!.click();
     expect(choices[0]!.checked).toBe(true);
     expect(choices[1]!.checked).toBe(false);
     expect(preview().value).toBe('Improve example behavior\n\nFirst body');
+
+    choices[1]!.click();
+    expect(preview().value).toBe('Improve example behavior\n\nSecond body');
   });
 
   it('disables inline choices while copying and restores them once copying settles', async () => {
@@ -518,18 +522,50 @@ describe('explicit merge form insertion', () => {
     insert().click();
     expect(field.value).toBe('Improve example behavior\n\n- Body');
   });
-  it('preserves manual edits before and after inserting', () => {
+  it('asks before replacing manual edits, then offers to restore them', () => {
     const field = form();
     field.value = 'My manual description';
     field.dispatchEvent(new Event('input', { bubbles: true }));
     insert().click();
     expect(field.value).toBe('My manual description');
-  });
-  it('does not enhance unrelated textareas or squash commit forms', () => {
-    const field = form();
-    document.querySelector<HTMLInputElement>('#merge_title_field')!.value = 'Squash title';
+    expect(insert().textContent).toBe(labels.mergeReplace);
+    expect(document.querySelector('.tlpr-merge-form-status')?.textContent).toBe(labels.mergeEdited);
     insert().click();
-    expect(field.value).toBe('Improve example behavior');
+    expect(field.value).toBe('Improve example behavior\n\n- Body');
+    expect(insert().textContent).toBe(labels.mergeInsert);
+    const undo = document.querySelector<HTMLButtonElement>('.tlpr-merge-undo')!;
+    expect(undo.hidden).toBe(false);
+    undo.click();
+    expect(field.value).toBe('My manual description');
+    expect(undo.hidden).toBe(true);
+  });
+  it('disarms a pending replacement when the user keeps typing', () => {
+    const field = form();
+    field.value = 'Draft';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    insert().click();
+    field.value = 'Draft, continued';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(insert().textContent).toBe(labels.mergeInsert);
+    insert().click();
+    expect(field.value).toBe('Draft, continued');
+  });
+  it('supports squash forms that mention the pull request number', () => {
+    const field = form();
+    document.querySelector<HTMLInputElement>('#merge_title_field')!.value =
+      'Improve example behavior (#713)';
+    insert().click();
+    expect(field.value).toBe('Improve example behavior\n\n- Body');
+  });
+  it('ignores suggestion commit dialogs that are not merge forms', () => {
+    window.history.replaceState({}, '', '/example/project/pull/713');
+    const container = mountPage([comment(markedBody('- Body'))]);
+    container.insertAdjacentHTML(
+      'afterend',
+      '<div role="dialog"><label for="s-title">Commit message</label><input id="s-title" value="Apply suggestions from code review"><label for="s-body">Extended description</label><textarea id="s-body"></textarea><button type="button">Commit changes</button></div>',
+    );
+    start(container);
+    expect(document.querySelector('.tlpr-merge-insert')).toBeNull();
   });
 });
 
@@ -574,18 +610,22 @@ describe('insertion lifecycle guards', () => {
       button: form.querySelector<HTMLButtonElement>('.tlpr-merge-insert')!,
     };
   }
-  it('requires source selection then explicit insertion when two comments qualify', () => {
+  it('inserts the latest proposal and lets the reader switch to an earlier one', () => {
     const { field, button, form } = setup([
       comment(markedBody('First body'), '1'),
       comment(markedBody('Second body'), '2'),
     ]);
     button.click();
-    expect(field.value).toBe('Improve example behavior');
-    expect(form.querySelectorAll('input[type="radio"]')).toHaveLength(2);
-    form.querySelectorAll<HTMLInputElement>('input[type="radio"]')[1]!.click();
-    expect(field.value).toBe('Improve example behavior');
-    button.click();
     expect(field.value).toBe('Improve example behavior\n\nSecond body');
+    form.querySelector<HTMLDetailsElement>('.tlpr-merge-form-preview')!.open = true;
+    form.querySelector('.tlpr-merge-form-preview')!.dispatchEvent(new Event('toggle'));
+    const radios = form.querySelectorAll<HTMLInputElement>('input[type="radio"]');
+    expect(radios).toHaveLength(2);
+    expect(radios[1]!.checked).toBe(true);
+    radios[0]!.click();
+    expect(field.value).toBe('Improve example behavior\n\nSecond body');
+    button.click();
+    expect(field.value).toBe('Improve example behavior\n\nFirst body');
   });
   it('does not overwrite manual text after insertion or duplicate on rescans', () => {
     const { field, button, handle } = setup();
@@ -630,12 +670,18 @@ describe('insertion lifecycle guards', () => {
       comment(markedBody('First body'), '1'),
       comment(markedBody('Second body'), '2'),
     ]);
-    button.click();
+    const details = form.querySelector<HTMLDetailsElement>('.tlpr-merge-form-preview')!;
+    details.open = true;
+    details.dispatchEvent(new Event('toggle'));
     form.querySelector<HTMLInputElement>('input[type="radio"]')!.click();
     document.querySelector('pre code')!.textContent = 'Changed body';
     button.click();
     expect(field.value).toBe('Improve example behavior');
-    expect(form.querySelector('input:checked')).toBeNull();
+    expect(form.querySelector('.tlpr-merge-form-status')?.textContent).toBe(
+      labels.mergeChooseSource,
+    );
+    // The refreshed list falls back to the latest proposal, visibly, for the next click.
+    expect(form.querySelector<HTMLInputElement>('input:checked')?.value).toContain('Second body');
   });
   it('refuses stale and detached fields after SPA navigation or form replacement', () => {
     const { field, button } = setup();

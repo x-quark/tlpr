@@ -72,7 +72,7 @@
             />
           </div>
           <div class="preferences">
-            <div class="setting-row language-row">
+            <div class="setting-row select-row">
               <div class="setting-copy">
                 <span
                   id="language-label"
@@ -90,7 +90,7 @@
                   hidden
                 ></span>
               </div>
-              <div class="language-select">
+              <div class="choice-select">
                 <button
                   type="button"
                   data-language-toggle
@@ -120,7 +120,7 @@
                 </button>
                 <div
                   id="language-options"
-                  class="language-options"
+                  class="choice-options"
                   role="listbox"
                   aria-labelledby="language-label"
                   hidden
@@ -148,6 +148,86 @@
                     aria-selected="false"
                     tabindex="-1"
                     data-i18n="popupLanguageEnglish"
+                  ></button>
+                </div>
+              </div>
+            </div>
+            <div class="setting-row select-row">
+              <div class="setting-copy">
+                <span
+                  id="layout-label"
+                  class="setting-label"
+                  data-help
+                  aria-describedby="layout-description"
+                  tabindex="0"
+                  data-i18n="popupLayout"
+                ></span
+                ><span
+                  id="layout-description"
+                  class="tooltip"
+                  role="tooltip"
+                  data-i18n="popupLayoutDescription"
+                  hidden
+                ></span>
+              </div>
+              <div class="choice-select">
+                <button
+                  type="button"
+                  data-layout-toggle
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="layout-options"
+                  aria-labelledby="layout-label layout-value"
+                >
+                  <span id="layout-value"></span
+                  ><svg
+                    class="select-chevron"
+                    viewBox="0 0 16 16"
+                    width="16"
+                    height="16"
+                    aria-hidden="true"
+                    focusable="false"
+                  >
+                    <path
+                      d="m4 6 4 4 4-4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.6"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </button>
+                <div
+                  id="layout-options"
+                  class="choice-options"
+                  role="listbox"
+                  aria-labelledby="layout-label"
+                  hidden
+                >
+                  <button
+                    type="button"
+                    role="option"
+                    data-layout="auto"
+                    aria-selected="false"
+                    tabindex="-1"
+                    data-i18n="popupLayoutAuto"
+                  ></button>
+                  <button
+                    type="button"
+                    role="option"
+                    data-layout="classic"
+                    aria-selected="false"
+                    tabindex="-1"
+                    data-i18n="popupLayoutClassic"
+                  ></button>
+                  <button
+                    type="button"
+                    role="option"
+                    data-layout="overview"
+                    aria-selected="false"
+                    tabindex="-1"
+                    data-i18n="popupLayoutOverview"
                   ></button>
                 </div>
               </div>

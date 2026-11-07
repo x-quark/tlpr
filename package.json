@@ -1,6 +1,6 @@
 {
   "name": "tlpr",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "A focused Chrome extension for readable GitHub pull request and issue conversations",
   "private": true,
   "license": "GPL-3.0-only",
@@ -20,8 +20,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "check": "pnpm test:focus && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm package && pnpm validate:package",
+    "check": "pnpm test:focus && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm package && pnpm validate:package",
     "test:focus": "node --test tests/zero-focus.test.mjs"
   },
   "pnpm": {
@@ -34,6 +35,7 @@
     "@eslint/js": "^10.0.1",
     "@types/chrome": "^0.2.7",
     "@types/node": "^26.4.0",
+    "@vitest/coverage-v8": "^4.1.11",
     "esbuild": "^0.28.2",
     "eslint": "^10.9.1",
     "fflate": "^0.8.3",

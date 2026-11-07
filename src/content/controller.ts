@@ -1,7 +1,24 @@
 import { isConversationLocation } from './routes';
-import { hasActiveCommentEditor } from './comment-dom';
+import {
+  BODY_SELECTOR,
+  COMMENT_SELECTOR,
+  DESCRIPTION_SELECTOR,
+  HEADER_SELECTOR,
+  findCommentBody,
+  findCommentHeader,
+  findCommentId,
+  hasActiveCommentEditor,
+  hasBotMarker,
+} from './comment-dom';
 import { icons } from './icons';
 import { message } from './i18n';
+import {
+  alternateViewUrl,
+  chronologyOf,
+  detectLayout,
+  type ConversationLayout,
+  type LayoutPreference,
+} from './layout';
 import { mountMergeHelper, type MergeHelperHandle } from './merge-helper';
 
 export const STORAGE_KEY = 'gh-pr-comment-collapse:v3';
@@ -9,22 +26,34 @@ export const LONG_COMMENT_PX = 140;
 export const KEEP_LEADING_TIMELINE_ITEMS = 2;
 export const KEEP_TRAILING_TIMELINE_ITEMS = 3;
 
-const COMMENT_SELECTOR =
-  '.js-comment.timeline-comment, .timeline-comment.js-comment, .review-comment.js-comment, .react-issue-comment, [id^="issuecomment-"], [id^="discussion_r"]';
-const BODY_SELECTOR =
-  '.comment-body, .edit-comment-hide .comment-body, [data-testid="markdown-body"], .markdown-body';
-const HEADER_SELECTOR = '.timeline-comment-header, [data-testid="comment-header"], header';
-const TIMELINE_ITEM_SELECTOR =
-  '.TimelineItem, .js-timeline-item, .timeline-comment-wrapper, .js-comment-container, .timeline-comment, .react-issue-comment';
-const HOST_SELECTOR =
-  '#discussion_bucket .js-discussion, .js-discussion, .new-discussion-timeline, [data-testid="issue-viewer-container"]';
+/** Action areas of React comment headers and issue body headers, in order of preference. */
+const HEADER_SLOTS = [
+  '[data-testid="comment-header-right-side-items"]',
+  '[class*="actionsSection"]',
+];
+const HEADER_SLOT_SELECTOR = HEADER_SLOTS.join(', ');
+const TIMELINE_CONTAINER_SELECTOR =
+  '.TimelineItem, .js-timeline-item, .timeline-comment-wrapper, .js-comment-container, [data-wrapper-timeline-id], [data-testid="timeline-item"]';
+const TIMELINE_ITEM_SELECTOR = [
+  TIMELINE_CONTAINER_SELECTOR,
+  '.timeline-comment',
+  '.react-issue-comment',
+  '[data-testid="timeline-commit-group"]',
+  'article[id*="issuecomment-"]',
+  'article[id*="pullrequestreview-"]',
+].join(', ');
+const HOST_HINT_SELECTOR =
+  '#discussion_bucket, .js-discussion, .new-discussion-timeline, [data-testid="issue-viewer-container"], [data-testid="issue-viewer-comments-container"], [data-testid="issue-body"], #overview-comments, section[aria-label="Description"]';
 const HYDRATION_SELECTOR = [
   COMMENT_SELECTOR,
   BODY_SELECTOR,
   HEADER_SELECTOR,
-  HOST_SELECTOR,
+  HOST_HINT_SELECTOR,
   TIMELINE_ITEM_SELECTOR,
 ].join(', ');
+const EDITOR_SELECTOR = 'textarea, [contenteditable]';
+const TLPR_UI_SELECTOR =
+  '.tlpr-global-rail, .tlpr-timeline-summary, .tlpr-control, .tlpr-comment-bar, .tlpr-merge-form-controls, .tlpr-merge-overlay';
 const NAVIGATION_EVENTS = ['turbo:load', 'turbo:render', 'soft-nav:success'] as const;
 const INTERACTIVE_SELECTOR =
   'a, button, input, select, textarea, summary, label, [role="button"], [role="link"], [contenteditable="true"], [tabindex]';
@@ -36,6 +65,48 @@ interface PageState {
 
 type Store = Record<string, PageState>;
 
+/** Facts about one comment that remain valid for the duration of one synchronous scan. */
+interface CommentFacts {
+  body: HTMLElement | null;
+  header: HTMLElement | null;
+  id: string | null;
+}
+
+export interface CollapserOptions {
+  mergeHelper?: boolean;
+  layout?: LayoutPreference;
+  onOutOfScope?: () => void;
+}
+
+function isOwnNode(node: Node): boolean {
+  if (node instanceof Element) return node.matches(TLPR_UI_SELECTOR);
+  return node.nodeType === Node.TEXT_NODE && !node.textContent?.trim();
+}
+
+const classTokens = (value: string | null): string[] => (value ?? '').split(/\s+/).filter(Boolean);
+
+/**
+ * Our own additions (fold classes, generated body ids) must not schedule another scan.
+ * Removals stay relevant: GitHub may have reset our markers and they must be restored.
+ */
+function isOwnAttributeChange(record: MutationRecord): boolean {
+  if (record.type !== 'attributes' || !(record.target instanceof Element)) return false;
+  const current = record.target.getAttribute(record.attributeName ?? '');
+  if (record.attributeName === 'class') {
+    const before = classTokens(record.oldValue);
+    const after = classTokens(current);
+    const foreign = (tokens: string[]) =>
+      tokens
+        .filter((token) => !token.startsWith('tlpr-'))
+        .sort()
+        .join(' ');
+    return before.every((token) => after.includes(token)) && foreign(before) === foreign(after);
+  }
+  if (record.attributeName === 'id')
+    return !record.oldValue && Boolean(current?.startsWith('tlpr-body-'));
+  return false;
+}
+
 export class GitHubCommentCollapser {
   private store: Store;
   private savedStore: Store;
@@ -45,7 +116,9 @@ export class GitHubCommentCollapser {
   private readonly timelineNodeIds = new WeakMap<HTMLElement, number>();
   private nextTimelineNodeId = 0;
   private globalRail: HTMLElement | null = null;
+  private viewSwitch: HTMLAnchorElement | null = null;
   private timelineSummary: HTMLElement | null = null;
+  private layout: ConversationLayout | null = null;
   private queued = false;
   private observer: MutationObserver | null = null;
   private enhancedBodies = new WeakMap<HTMLElement, HTMLElement>();
@@ -63,11 +136,12 @@ export class GitHubCommentCollapser {
   private removeMergeHelper: MergeHelperHandle | null = null;
   private pagePath = '';
   private scanEditors: WeakMap<HTMLElement, boolean> | null = null;
+  private scanFacts: WeakMap<HTMLElement, CommentFacts> | null = null;
 
   public constructor(
     private readonly pageDocument: Document = document,
     private readonly pageWindow: Window = window,
-    private readonly options: { mergeHelper?: boolean; onOutOfScope?: () => void } = {},
+    private readonly options: CollapserOptions = {},
   ) {
     this.store = this.readStore();
     this.savedStore = structuredClone(this.store);
@@ -81,31 +155,13 @@ export class GitHubCommentCollapser {
         this.scan();
         return;
       }
-      if (
-        records.some(
-          (record) =>
-            record.type === 'childList' ||
-            (record.type === 'attributes' && record.attributeName === 'contenteditable') ||
-            (record.type === 'attributes' &&
-              ['class', 'id', 'data-testid'].includes(record.attributeName ?? '') &&
-              record.target instanceof Element &&
-              (record.target.matches(HYDRATION_SELECTOR) ||
-                record.target.closest(COMMENT_SELECTOR) ||
-                record.target.querySelector(COMMENT_SELECTOR))) ||
-            (record.type === 'characterData' &&
-              Boolean(record.target.parentElement?.closest(BODY_SELECTOR))) ||
-            (record.target instanceof Element &&
-              (record.target.matches('textarea, [contenteditable]') ||
-                record.target.querySelector('textarea, [contenteditable]') ||
-                record.target.closest('[contenteditable]'))),
-        )
-      )
-        this.schedule();
+      if (records.some((record) => this.isRelevant(record))) this.schedule();
     });
     this.observer.observe(this.pageDocument.documentElement, {
       childList: true,
       characterData: true,
       attributes: true,
+      attributeOldValue: true,
       attributeFilter: [
         'class',
         'id',
@@ -162,13 +218,25 @@ export class GitHubCommentCollapser {
       this.clearEffects();
       this.pagePath = pathname;
     }
-    const host = this.pageDocument.querySelector<HTMLElement>(HOST_SELECTOR);
-    if (!host) return;
+    const layout = detectLayout(this.pageDocument, this.options.layout ?? 'auto');
+    if (!layout) return;
+    if (
+      this.layout &&
+      (this.layout.host !== layout.host || this.layout.timeline !== layout.timeline)
+    ) {
+      this.releaseLayout(this.layout);
+    }
+    this.layout = layout;
+    const root = this.pageDocument.documentElement;
+    if (root.dataset.tlprLayout !== layout.kind) root.dataset.tlprLayout = layout.kind;
+    const host = layout.host;
 
     // A scan is synchronous. Reuse visibility checks only within this pass, never
     // across DOM mutations, user interactions or subsequent scans.
     const previousEditors = this.scanEditors;
+    const previousFacts = this.scanFacts;
     this.scanEditors = new WeakMap();
+    this.scanFacts = new WeakMap();
     try {
       // GitHub may reuse a folded body as its editor. Suspend only our effects,
       // leaving the draft, native styles and persisted reading preference untouched.
@@ -180,16 +248,31 @@ export class GitHubCommentCollapser {
           body.style.removeProperty('--tlpr-reveal-proximity');
         }
         comment.querySelector('.tlpr-control')?.remove();
+        comment.querySelector(':scope > .tlpr-comment-bar')?.remove();
       });
-      this.getHumanComments(host).forEach((comment) => this.enhanceComment(comment));
-      this.renderGlobalRail(host);
+      const comments = this.getHumanComments(host);
+      // Measure every comment before changing the page: interleaved reads and writes
+      // would force one layout per comment on long conversations.
+      const defaults = new Map(comments.map((comment) => [comment, this.defaultState(comment)]));
+      comments.forEach((comment) => this.enhanceComment(comment, defaults.get(comment) ?? false));
+      this.renderGlobalRail(host, layout);
       this.removeMergeHelper?.refresh();
-      const linkedTarget = this.revealLinkedTarget(host);
-      this.renderTimeline(host, Boolean(linkedTarget));
+      const linkedTarget = this.revealLinkedTarget(host, comments);
+      this.renderTimeline(layout, Boolean(linkedTarget));
       linkedTarget?.scrollIntoView?.({ block: 'nearest' });
     } finally {
       this.scanEditors = previousEditors;
+      this.scanFacts = previousFacts;
+      this.discardOwnMutations();
     }
+  }
+
+  /**
+   * Pending records after one of our synchronous passes describe our own writes: scripts
+   * cannot interleave, and earlier page changes were delivered before this pass started.
+   */
+  private discardOwnMutations(): void {
+    this.observer?.takeRecords();
   }
 
   public destroy(): void {
@@ -198,13 +281,92 @@ export class GitHubCommentCollapser {
     this.clearEffects();
   }
 
+  /** Changes outside the conversation rarely matter; GitHub mutates far more than comments. */
+  private isRelevant(record: MutationRecord): boolean {
+    const target = record.target;
+    const element = target instanceof Element ? target : target.parentElement;
+    if (!element) return false;
+    if (
+      record.type === 'childList' &&
+      record.removedNodes.length === 0 &&
+      [...record.addedNodes].every(isOwnNode)
+    ) {
+      return false;
+    }
+    // Labels and states inside our own widgets change on every toggle. Removing a widget
+    // still matters: that record targets its GitHub parent, outside this selector.
+    if (element.closest(TLPR_UI_SELECTOR)) return false;
+    if (isOwnAttributeChange(record)) return false;
+
+    const host = this.layout?.host;
+    if (!host?.isConnected || host.contains(element)) return this.isConversationChange(record);
+
+    // Outside the known conversation: only a new conversation container or merge form.
+    const watched = this.options.mergeHelper
+      ? `${HOST_HINT_SELECTOR}, ${COMMENT_SELECTOR}, textarea`
+      : `${HOST_HINT_SELECTOR}, ${COMMENT_SELECTOR}`;
+    if (record.type === 'childList') {
+      return [...record.addedNodes, ...record.removedNodes].some(
+        (node) =>
+          node instanceof Element &&
+          !node.matches(TLPR_UI_SELECTOR) &&
+          (node.matches(watched) || Boolean(node.querySelector(watched))),
+      );
+    }
+    if (record.type === 'attributes') {
+      if (['class', 'id', 'data-testid'].includes(record.attributeName ?? '')) {
+        if (element.matches(HOST_HINT_SELECTOR) || element.querySelector(HOST_HINT_SELECTOR))
+          return true;
+      }
+      return Boolean(
+        this.options.mergeHelper &&
+        (element.matches('textarea') || element.querySelector('textarea')),
+      );
+    }
+    return false;
+  }
+
+  private isConversationChange(record: MutationRecord): boolean {
+    return (
+      record.type === 'childList' ||
+      (record.type === 'attributes' && record.attributeName === 'contenteditable') ||
+      (record.type === 'attributes' &&
+        ['class', 'id', 'data-testid'].includes(record.attributeName ?? '') &&
+        record.target instanceof Element &&
+        (record.target.matches(HYDRATION_SELECTOR) ||
+          Boolean(record.target.closest(COMMENT_SELECTOR)) ||
+          Boolean(record.target.querySelector(COMMENT_SELECTOR)))) ||
+      (record.type === 'characterData' &&
+        Boolean(record.target.parentElement?.closest(BODY_SELECTOR))) ||
+      (record.target instanceof Element &&
+        (record.target.matches(EDITOR_SELECTOR) ||
+          Boolean(record.target.querySelector(EDITOR_SELECTOR)) ||
+          Boolean(record.target.closest('[contenteditable]'))))
+    );
+  }
+
+  /** Removes controls bound to a previous conversation container. */
+  private releaseLayout(layout: ConversationLayout): void {
+    this.removeMergeHelper?.();
+    this.removeMergeHelper = null;
+    this.globalRail?.remove();
+    this.globalRail = null;
+    this.viewSwitch = null;
+    if (layout.timeline) this.clearTimelineControls(layout.timeline);
+    this.timelineSummary?.remove();
+    this.timelineSummary = null;
+    this.lastTimelineSignature = '';
+  }
+
   private clearEffects(): void {
     this.removeMergeHelper?.();
     this.removeMergeHelper = null;
     this.bodyListeners.forEach((remove) => remove());
     this.bodyListeners.clear();
     this.pageDocument
-      .querySelectorAll('.tlpr-control, .tlpr-timeline-summary, .tlpr-global-rail')
+      .querySelectorAll(
+        '.tlpr-control, .tlpr-comment-bar, .tlpr-timeline-summary, .tlpr-global-rail',
+      )
       .forEach((node) => node.remove());
     this.pageDocument
       .querySelectorAll<HTMLElement>('.tlpr-body, [data-tlpr-collapsed]')
@@ -221,13 +383,16 @@ export class GitHubCommentCollapser {
     this.pageDocument.querySelectorAll('.tlpr-timeline-hidden').forEach((item) => {
       item.classList.remove('tlpr-timeline-hidden');
     });
+    delete this.pageDocument.documentElement.dataset.tlprLayout;
     this.enhancedBodies = new WeakMap();
     this.clickableBodies = new WeakSet();
     this.enhancedButtons = new WeakMap();
     this.buttonIcons = new WeakMap();
     this.lastTimelineSignature = '';
     this.globalRail = null;
+    this.viewSwitch = null;
     this.timelineSummary = null;
+    this.layout = null;
     this.linkedTarget = null;
     this.linkedCommentManuallyToggled = false;
     this.linkedTimelineManuallyToggled = false;
@@ -263,7 +428,7 @@ export class GitHubCommentCollapser {
     this.keyboardNavigation = false;
   };
 
-  private revealLinkedTarget(host: HTMLElement): HTMLElement | null {
+  private revealLinkedTarget(host: HTMLElement, comments: HTMLElement[]): HTMLElement | null {
     const location = this.pageWindow.location;
     const linkedLocation = `${location.pathname}${location.hash}`;
     if (!location.hash) return null;
@@ -284,7 +449,7 @@ export class GitHubCommentCollapser {
     this.lastLinkedLocation = linkedLocation;
     this.lastLinkedTarget = target;
     this.linkedTarget = this.linkedTimelineManuallyToggled ? null : target;
-    const comment = this.getHumanComments(host).find((item) => item.contains(target));
+    const comment = comments.find((item) => item.contains(target) || target.contains(item));
     // Following a link is temporary: do not replace the user's saved preferences.
     if (comment && !this.linkedCommentManuallyToggled) this.paintComment(comment, false);
     return target;
@@ -375,23 +540,41 @@ export class GitHubCommentCollapser {
     return initial;
   }
 
+  /** Body, header and anchor are cached for one synchronous scan only. */
+  private factsOf(comment: HTMLElement): CommentFacts {
+    const cached = this.scanFacts?.get(comment);
+    if (cached) return cached;
+    const body = findCommentBody(comment);
+    const header = findCommentHeader(comment, body);
+    const facts = { body, header, id: findCommentId(comment, header) };
+    this.scanFacts?.set(comment, facts);
+    return facts;
+  }
+
   private getId(comment: HTMLElement): string | null {
-    const holder = comment.closest<HTMLElement>(
-      '[id^="issuecomment-"], [id^="discussion_r"], [id^="pullrequestreview-"]',
-    );
-    return holder?.id || comment.id || null;
+    return this.factsOf(comment).id;
   }
 
   private bodyOf(comment: HTMLElement): HTMLElement | null {
-    return comment.querySelector<HTMLElement>(BODY_SELECTOR);
+    return this.factsOf(comment).body;
   }
 
   private headerOf(comment: HTMLElement): HTMLElement | null {
-    return comment.querySelector<HTMLElement>(HEADER_SELECTOR);
+    return this.factsOf(comment).header;
   }
 
   private botComment(comment: HTMLElement): boolean {
-    return (this.headerOf(comment)?.textContent ?? '').toLowerCase().includes('[bot]');
+    const header = this.headerOf(comment);
+    if (header) return hasBotMarker(header);
+    // Descriptions have no comment header: their author is shown in the page header.
+    if (!comment.matches(DESCRIPTION_SELECTOR)) return false;
+    const pageHeader =
+      this.pageDocument.querySelector('[data-testid="issue-header"]') ??
+      this.pageDocument
+        .querySelector('h1')
+        ?.closest('[data-component="PageHeader"], .gh-header, header') ??
+      null;
+    return hasBotMarker(pageHeader);
   }
 
   private editableComment(comment: HTMLElement): boolean {
@@ -423,14 +606,16 @@ export class GitHubCommentCollapser {
 
   private paintComment(comment: HTMLElement, collapsed: boolean): void {
     const body = this.bodyOf(comment);
-    const button = comment.querySelector<HTMLButtonElement>('.tlpr-comment-toggle');
+    const button =
+      this.enhancedButtons.get(comment) ??
+      comment.querySelector<HTMLButtonElement>('.tlpr-comment-toggle');
     if (!body) return;
 
     body.classList.add('tlpr-body');
     body.dataset.tlprCollapsed = collapsed ? '1' : '0';
     body.style.removeProperty('--tlpr-reveal-proximity');
 
-    if (button) {
+    if (button?.isConnected && comment.contains(button)) {
       const label = collapsed ? message('expand') : message('collapse');
       this.renderButton(button, icons.down, label);
       button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
@@ -448,6 +633,7 @@ export class GitHubCommentCollapser {
     this.getPageState().comments[id] = collapsed;
     this.saveStore([id]);
     this.paintComment(comment, collapsed);
+    this.discardOwnMutations();
   }
 
   private reconcileBodyTarget(
@@ -466,33 +652,58 @@ export class GitHubCommentCollapser {
       button.setAttribute('aria-controls', body.id);
   }
 
-  private enhanceComment(comment: HTMLElement): void {
+  /** Saved choice, temporary link expansion, or the automatic length rule (a layout read). */
+  private defaultState(comment: HTMLElement): boolean {
+    const id = this.getId(comment);
+    const body = this.bodyOf(comment);
+    if (!id || !body) return false;
+    const keepLinkedExpansion =
+      this.lastLinkedTarget &&
+      comment.contains(this.lastLinkedTarget) &&
+      !this.linkedCommentManuallyToggled;
+    if (keepLinkedExpansion) return false;
+    const saved = this.getPageState().comments[id];
+    return typeof saved === 'boolean' ? saved : body.scrollHeight > LONG_COMMENT_PX;
+  }
+
+  /** Where the comment toggle lives: the header's action area or a TL;PR bar. */
+  private controlSlotOf(comment: HTMLElement, header: HTMLElement | null): HTMLElement | null {
+    if (header) {
+      for (const selector of HEADER_SLOTS) {
+        const slot = header.querySelector<HTMLElement>(selector);
+        if (slot) return slot;
+      }
+      return header;
+    }
+    if (!comment.matches(DESCRIPTION_SELECTOR)) return null;
+    const existing = [...comment.children].find((child) =>
+      child.classList.contains('tlpr-comment-bar'),
+    );
+    if (existing instanceof HTMLElement) return existing;
+    const bar = this.pageDocument.createElement('div');
+    bar.className = 'tlpr-comment-bar';
+    comment.prepend(bar);
+    return bar;
+  }
+
+  private enhanceComment(comment: HTMLElement, collapsed: boolean): void {
     if (this.botComment(comment) || this.editableComment(comment)) return;
 
     const id = this.getId(comment);
     const body = this.bodyOf(comment);
     const header = this.headerOf(comment);
-    if (!id || !body || !header) return;
+    if (!id || !body || (!header && !comment.matches(DESCRIPTION_SELECTOR))) return;
+    const enhancedButton = this.enhancedButtons.get(comment);
     if (
       comment.dataset.tlprEnhanced === '1' &&
-      comment.querySelector('.tlpr-comment-toggle') === this.enhancedButtons.get(comment) &&
-      header.contains(this.enhancedButtons.get(comment) ?? null) &&
+      enhancedButton?.isConnected &&
+      comment.querySelector('.tlpr-comment-toggle') === enhancedButton &&
+      (header ? header.contains(enhancedButton) : !body.contains(enhancedButton)) &&
       this.enhancedBodies.get(comment) === body
     ) {
       // Reconcile extension-owned effects as well as node identity: hydration may
       // replace className or id without replacing the body or its control.
-      const button = this.enhancedButtons.get(comment)!;
-      this.reconcileBodyTarget(body, button, id);
-      const saved = this.getPageState().comments[id];
-      const keepLinkedExpansion =
-        this.lastLinkedTarget &&
-        comment.contains(this.lastLinkedTarget) &&
-        !this.linkedCommentManuallyToggled;
-      const collapsed = keepLinkedExpansion
-        ? false
-        : typeof saved === 'boolean'
-          ? saved
-          : body.scrollHeight > LONG_COMMENT_PX;
+      this.reconcileBodyTarget(body, enhancedButton, id);
       if (
         !body.classList.contains('tlpr-body') ||
         body.dataset.tlprCollapsed !== (collapsed ? '1' : '0')
@@ -502,31 +713,23 @@ export class GitHubCommentCollapser {
       return;
     }
 
+    const slot = this.controlSlotOf(comment, header);
+    if (!slot) return;
     comment.dataset.tlprEnhanced = '1';
     this.enhancedBodies.set(comment, body);
-    header.querySelectorAll('.tlpr-control, .tlpr-comment-toggle').forEach((node) => node.remove());
+    (header ?? slot)
+      .querySelectorAll('.tlpr-control, .tlpr-comment-toggle')
+      .forEach((node) => node.remove());
 
     const control = this.pageDocument.createElement('span');
     control.className = 'tlpr-control';
     const button = this.makeButton(icons.down, message('collapse'), 'tlpr-btn tlpr-comment-toggle');
     this.reconcileBodyTarget(body, button, id);
     control.append(button);
-    header.append(control);
+    if (slot.matches(HEADER_SLOT_SELECTOR)) slot.prepend(control);
+    else slot.append(control);
     this.enhancedButtons.set(comment, button);
-
-    const saved = this.getPageState().comments[id];
-    const keepLinkedExpansion =
-      this.lastLinkedTarget &&
-      comment.contains(this.lastLinkedTarget) &&
-      !this.linkedCommentManuallyToggled;
-    this.paintComment(
-      comment,
-      keepLinkedExpansion
-        ? false
-        : typeof saved === 'boolean'
-          ? saved
-          : body.scrollHeight > LONG_COMMENT_PX,
-    );
+    this.paintComment(comment, collapsed);
 
     button.addEventListener('click', (event) => {
       event.preventDefault();
@@ -609,23 +812,16 @@ export class GitHubCommentCollapser {
     return [...host.querySelectorAll<HTMLElement>(COMMENT_SELECTOR)].filter(
       (comment) =>
         Boolean(this.getId(comment)) &&
-        this.bodyOf(comment)?.closest(COMMENT_SELECTOR) === comment &&
+        Boolean(this.bodyOf(comment)) &&
         !this.botComment(comment) &&
         !this.editableComment(comment),
     );
   }
 
-  private getTimelineItems(host: HTMLElement): HTMLElement[] {
-    const raw = [...host.querySelectorAll<HTMLElement>(TIMELINE_ITEM_SELECTOR)];
+  private getTimelineItems(root: HTMLElement): HTMLElement[] {
+    const raw = [...root.querySelectorAll<HTMLElement>(TIMELINE_ITEM_SELECTOR)];
     const unique = [
-      ...new Set(
-        raw.map(
-          (item) =>
-            item.closest<HTMLElement>(
-              '.TimelineItem, .js-timeline-item, .timeline-comment-wrapper, .js-comment-container',
-            ) ?? item,
-        ),
-      ),
+      ...new Set(raw.map((item) => item.closest<HTMLElement>(TIMELINE_CONTAINER_SELECTOR) ?? item)),
     ];
 
     const candidates = new Set(unique);
@@ -638,7 +834,7 @@ export class GitHubCommentCollapser {
         return false;
       for (
         let ancestor: HTMLElement | null = item.parentElement;
-        ancestor && ancestor !== host;
+        ancestor && ancestor !== root;
         ancestor = ancestor.parentElement
       ) {
         if (candidates.has(ancestor)) return false;
@@ -647,20 +843,48 @@ export class GitHubCommentCollapser {
     });
   }
 
-  private clearTimelineControls(host: HTMLElement): void {
-    host.querySelectorAll('.tlpr-timeline-summary').forEach((node) => node.remove());
-    this.getTimelineItems(host).forEach((item) => {
-      if (item.classList.contains('tlpr-timeline-hidden')) {
-        item.classList.remove('tlpr-timeline-hidden');
-      }
+  private clearTimelineControls(root: HTMLElement): void {
+    root.querySelectorAll('.tlpr-timeline-summary').forEach((node) => node.remove());
+    root.querySelectorAll('.tlpr-timeline-hidden').forEach((item) => {
+      item.classList.remove('tlpr-timeline-hidden');
     });
   }
 
-  private renderGlobalRail(host: HTMLElement): void {
-    if (this.globalRail && host.querySelector('.tlpr-global-rail') === this.globalRail) return;
+  private renderViewSwitch(rail: HTMLElement, layout: ConversationLayout): void {
+    const target = alternateViewUrl(this.pageWindow.location, layout.kind);
+    if (!target) {
+      this.viewSwitch?.remove();
+      this.viewSwitch = null;
+      return;
+    }
+    const label = message(layout.kind === 'overview' ? 'viewClassic' : 'viewOverview');
+    if (!this.viewSwitch || !rail.contains(this.viewSwitch)) {
+      this.viewSwitch?.remove();
+      const link = this.pageDocument.createElement('a');
+      link.className = 'tlpr-btn tlpr-view-switch';
+      link.innerHTML = icons.view;
+      link.append(this.pageDocument.createElement('span'));
+      rail.append(link);
+      this.viewSwitch = link;
+    }
+    const link = this.viewSwitch;
+    if (link.getAttribute('href') !== target.href) link.href = target.href;
+    if (link.title !== label) {
+      link.title = label;
+      link.setAttribute('aria-label', label);
+      link.lastElementChild!.textContent = label;
+    }
+  }
+
+  private renderGlobalRail(host: HTMLElement, layout: ConversationLayout): void {
+    if (this.globalRail && host.querySelector('.tlpr-global-rail') === this.globalRail) {
+      this.renderViewSwitch(this.globalRail, layout);
+      return;
+    }
     host.querySelectorAll('.tlpr-global-rail').forEach((node) => node.remove());
     this.removeMergeHelper?.();
     this.removeMergeHelper = null;
+    this.viewSwitch = null;
     const rail = this.pageDocument.createElement('div');
     rail.className = 'tlpr-toolbar tlpr-global-rail';
     rail.setAttribute('role', 'group');
@@ -688,17 +912,22 @@ export class GitHubCommentCollapser {
       }
       this.linkedTarget = null;
       this.saveStore(changedIds, true);
-      this.renderTimeline(host, true);
+      if (this.layout) this.renderTimeline(this.layout, true);
+      this.discardOwnMutations();
     };
     expand.addEventListener('click', () => apply(false));
     collapse.addEventListener('click', () => apply(true));
     rail.append(expand, collapse);
     host.prepend(rail);
     this.globalRail = rail;
+    this.renderViewSwitch(rail, layout);
     if (this.options.mergeHelper && /\/pull\/\d+/.test(this.pageWindow.location.pathname)) {
       this.removeMergeHelper = mountMergeHelper(this.pageDocument, this.pageWindow, rail, {
         mergeInsert: message('mergeInsert'),
+        mergeReplace: message('mergeReplace'),
         mergeInserted: message('mergeInserted'),
+        mergeUndo: message('mergeUndo'),
+        mergeUndone: message('mergeUndone'),
         mergeEdited: message('mergeEdited'),
         mergeFormUnavailable: message('mergeFormUnavailable'),
         mergeChooseSource: message('mergeChooseSource'),
@@ -707,11 +936,15 @@ export class GitHubCommentCollapser {
         mergeTitle: message('mergeTitle'),
         mergeDetectedNotice: message('mergeDetectedNotice'),
         mergeCandidateLabel: message('mergeCandidateLabel'),
-        mergeCandidatePlaceholder: message('mergeCandidatePlaceholder'),
         mergeCandidateOption: message('mergeCandidateOption'),
+        mergeCandidateLatest: message('mergeCandidateLatest'),
+        mergeSubjectLabel: message('mergeSubjectLabel'),
+        mergeDescriptionLabel: message('mergeDescriptionLabel'),
+        mergeKeepsTitle: message('mergeKeepsTitle'),
         mergePreviewLabel: message('mergePreviewLabel'),
         mergeMissingTitle: message('mergeMissingTitle'),
         mergeNoCandidates: message('mergeNoCandidates'),
+        mergeViewSource: message('mergeViewSource'),
         mergeCopy: message('mergeCopy'),
         mergeCopying: message('mergeCopying'),
         mergeCopied: message('mergeCopied'),
@@ -721,14 +954,17 @@ export class GitHubCommentCollapser {
     }
   }
 
-  private renderTimeline(host: HTMLElement, force = false): void {
-    const items = this.getTimelineItems(host);
+  private renderTimeline(layout: ConversationLayout, force = false): void {
+    const root = layout.timeline;
+    if (!root) return;
+    const items = this.getTimelineItems(root);
     const isEditing = (item: HTMLElement): boolean =>
       [item, ...item.querySelectorAll<HTMLElement>(COMMENT_SELECTOR)].some(
         (comment) => comment.matches(COMMENT_SELECTOR) && this.editableComment(comment),
       );
     const editingItems = new Set(items.filter(isEditing));
-    const signature = items
+    const order = chronologyOf(items, layout);
+    const signature = `${order}|${items
       .map((item) => {
         let identity = this.timelineNodeIds.get(item);
         if (identity === undefined) {
@@ -737,10 +973,16 @@ export class GitHubCommentCollapser {
         }
         return `${identity}:${editingItems.has(item) ? 'editing' : 'reading'}`;
       })
-      .join('|');
+      .join('|')}`;
 
+    // Keep the chronological start and end: with newest-first lists, the oldest
+    // items are at the bottom of the page.
+    const keepStart =
+      order === 'descending' ? KEEP_TRAILING_TIMELINE_ITEMS : KEEP_LEADING_TIMELINE_ITEMS;
+    const keepEnd =
+      order === 'descending' ? KEEP_LEADING_TIMELINE_ITEMS : KEEP_TRAILING_TIMELINE_ITEMS;
     const hidden = items
-      .slice(KEEP_LEADING_TIMELINE_ITEMS, -KEEP_TRAILING_TIMELINE_ITEMS)
+      .slice(keepStart, Math.max(keepStart, items.length - keepEnd))
       .filter((item) => !editingItems.has(item));
     const needsSummary = hidden.length > 0;
     if (
@@ -748,12 +990,13 @@ export class GitHubCommentCollapser {
       signature === this.lastTimelineSignature &&
       (!needsSummary ||
         (this.timelineSummary &&
-          host.querySelector('.tlpr-timeline-summary') === this.timelineSummary))
+          root.querySelector('.tlpr-timeline-summary') === this.timelineSummary))
     ) {
       return;
     }
     this.lastTimelineSignature = signature;
-    this.clearTimelineControls(host);
+    this.clearTimelineControls(root);
+    this.timelineSummary = null;
 
     if (items.length <= KEEP_LEADING_TIMELINE_ITEMS + KEEP_TRAILING_TIMELINE_ITEMS) {
       return;
@@ -814,6 +1057,7 @@ export class GitHubCommentCollapser {
       this.saveStore([], true);
       // Update in place so keyboard focus and the icon transition survive the click.
       paint();
+      this.discardOwnMutations();
     });
   }
 }

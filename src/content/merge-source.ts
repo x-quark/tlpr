@@ -1,13 +1,44 @@
-import { hasActiveCommentEditor } from './comment-dom';
+import {
+  COMMENT_SELECTOR,
+  authorOf,
+  findCommentBody,
+  findCommentHeader,
+  findCommentId,
+  hasActiveCommentEditor,
+  timestampOf,
+} from './comment-dom';
+import { detectLayout } from './layout';
 
-const DISCUSSION_SELECTOR =
-  '#discussion_bucket, .js-discussion, .new-discussion-timeline, [data-testid="issue-viewer-container"]';
-const COMMENT_SELECTOR =
-  '.js-comment, .react-issue-comment, [id^="issuecomment-"], [id^="discussion_r"]';
-const BODY_SELECTOR = '.comment-body, [data-testid="markdown-body"], .markdown-body';
+/**
+ * The current React pull request header renders `h1 > span.markdown-title`; issues and
+ * older headers use `bdi.markdown-title`, `[data-testid="issue-title"]` or `.js-issue-title`.
+ */
 const TITLE_SELECTOR =
-  '.js-issue-title, [data-testid="issue-title"], h1[data-component="PH_Title"] .markdown-title';
-const MERGE_HEADING = '🧾 Merge commit body';
+  'h1 .markdown-title, bdi.markdown-title, [data-testid="issue-title"], .js-issue-title';
+const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
+/** “🧾 Proposed merge commit”, “🧾 Merge commit body”, “Merge commit message”… */
+const MARKER_HEADING = /🧾|\bmerge[\s-]+commit\b|\bcommit\s+message\b/iu;
+const BODY_ONLY_HEADING = /\b(?:body|description)\b/i;
+const COMMIT_LANGUAGES = new Set(['git', 'gitcommit', 'git-commit', 'commit']);
+const MARKDOWN_LANGUAGES = new Set(['markdown', 'md']);
+
+export interface MergeProposal {
+  /** Commit subject when the source block is a complete commit message. */
+  subject: string | null;
+  /** Commit body: every line after the subject, or the whole block. */
+  body: string;
+  /** Anchor of the source comment, used for selection and the “view source” link. */
+  sourceId: string | null;
+  author: string | null;
+  createdAt: number | null;
+  heading: string | null;
+}
+
+export interface MergeMessage {
+  /** New commit title, or null to keep GitHub's default title. */
+  title: string | null;
+  description: string;
+}
 
 export function isVisible(element: Element, pageWindow: Window, allowTlprFold = false): boolean {
   for (let current: Element | null = element; current; current = current.parentElement) {
@@ -25,56 +56,186 @@ export function isVisible(element: Element, pageWindow: Window, allowTlprFold = 
   return true;
 }
 
+const normalize = (text: string | null | undefined): string =>
+  (text ?? '').trim().replace(/\s+/g, ' ');
+
 export function readTitle(pageDocument: Document, pageWindow: Window): string | null {
   const titles = new Set(
     [...pageDocument.querySelectorAll(TITLE_SELECTOR)]
       .filter((element) => isVisible(element, pageWindow))
-      .map((element) => element.textContent?.trim() ?? '')
+      .map((element) => normalize(element.textContent))
       .filter(Boolean),
   );
   return titles.size === 1 ? [...titles][0]! : null;
 }
 
-export function readCandidates(pageDocument: Document, pageWindow: Window): string[] {
-  const bodies = new Set<Element>();
-  for (const discussion of pageDocument.querySelectorAll(DISCUSSION_SELECTOR)) {
-    for (const body of discussion.querySelectorAll(BODY_SELECTOR)) {
-      const comment = body.closest(COMMENT_SELECTOR);
-      if (!comment || !discussion.contains(comment)) continue;
-      if (hasActiveCommentEditor(comment as HTMLElement, pageWindow)) continue;
-      // The first matching body owns any nested markdown wrappers.
-      if (comment.querySelector(BODY_SELECTOR) !== body) continue;
-      bodies.add(body);
-    }
+function codeLanguage(block: HTMLElement): string | null {
+  const declared =
+    block.getAttribute('lang') ?? block.querySelector('code[lang]')?.getAttribute('lang');
+  if (declared) return declared.trim().toLowerCase();
+  const highlighted = block
+    .closest('.highlight')
+    ?.className.match(/\bhighlight-(?:text|source)-([a-z0-9-]+)/)?.[1];
+  if (highlighted) return highlighted;
+  return (
+    block
+      .querySelector('code')
+      ?.className.match(/\blanguage-([a-z0-9-]+)/i)?.[1]
+      ?.toLowerCase() ?? null
+  );
+}
+
+/**
+ * Exact block text: GitHub keeps the raw fenced content for its copy button. Only the
+ * renderer's surrounding blank lines are dropped; inner and trailing spaces are preserved.
+ */
+function blockText(block: HTMLElement): string {
+  const raw =
+    block
+      .closest('[data-snippet-clipboard-copy-content]')
+      ?.getAttribute('data-snippet-clipboard-copy-content') ??
+    block.textContent ??
+    '';
+  return raw
+    .replace(/\r\n?/g, '\n')
+    .replace(/^(?:[ \t]*\n)+/, '')
+    .replace(/(?:\n[ \t]*)+$/, '');
+}
+
+const follows = (first: Node, second: Node): boolean =>
+  Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+/** True when a comment holds nothing but this block (and optional headings). */
+function isOnlyBlock(body: HTMLElement, block: HTMLElement): boolean {
+  const wrapper = block.closest('.snippet-clipboard-content, .highlight') ?? block;
+  const walker = body.ownerDocument.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (!node.textContent?.trim()) continue;
+    const parent = node.parentElement;
+    if (!parent || wrapper.contains(parent) || parent.closest(HEADING_SELECTOR)) continue;
+    return false;
+  }
+  return true;
+}
+
+type Hint = 'full' | 'body' | 'auto';
+
+/**
+ * Splits a commit message. A complete message starts with a subject line followed by a
+ * blank line; bullet lists and Markdown blocks are body-only templates.
+ */
+export function splitCommitMessage(
+  text: string,
+  hint: Hint = 'auto',
+): { subject: string | null; body: string } {
+  const lines = text.split('\n');
+  const first = lines[0]?.trim() ?? '';
+  const second = lines[1];
+  const subjectLike =
+    first !== '' && first.length <= 300 && !/^(?:[-*+>|]|#{1,6}|\d+[.)])(?:\s|$)/.test(first);
+  if (hint !== 'body' && subjectLike && (second === undefined || second.trim() === '')) {
+    return { subject: first, body: lines.slice(1).join('\n').replace(/^\n+/, '') };
+  }
+  return { subject: null, body: text };
+}
+
+function proposalSource(
+  body: HTMLElement,
+  pageWindow: Window,
+): { text: string; hint: Hint; heading: string | null } | null {
+  const headings = [...body.querySelectorAll<HTMLElement>(HEADING_SELECTOR)].filter(
+    (heading) => !heading.closest('blockquote'),
+  );
+  const blocks = [...body.querySelectorAll<HTMLElement>('pre')].filter(
+    (block) => !block.closest('blockquote'),
+  );
+  const markers = headings.filter(
+    (heading) =>
+      MARKER_HEADING.test(normalize(heading.textContent)) && isVisible(heading, pageWindow, true),
+  );
+  if (markers.length > 1) return null;
+
+  if (markers.length === 1) {
+    const heading = markers[0]!;
+    // The designated section ends at the next heading; later blocks belong elsewhere.
+    const section = blocks.filter(
+      (block) =>
+        follows(heading, block) &&
+        !headings.some(
+          (other) => other !== heading && follows(heading, other) && follows(other, block),
+        ),
+    );
+    if (section.length !== 1) return null;
+    const block = section[0]!;
+    if (!isVisible(block, pageWindow, true)) return null;
+    const language = codeLanguage(block) ?? '';
+    const title = normalize(heading.textContent);
+    const hint: Hint =
+      MARKDOWN_LANGUAGES.has(language) || BODY_ONLY_HEADING.test(title)
+        ? 'body'
+        : COMMIT_LANGUAGES.has(language)
+          ? 'full'
+          : 'auto';
+    return { text: blockText(block), hint, heading: title };
   }
 
-  const candidates: string[] = [];
-  for (const body of bodies) {
-    const headings = [...body.querySelectorAll('h1, h2, h3, h4, h5, h6')].filter(
-      (heading) =>
-        heading.textContent?.trim().replace(/\s+/g, ' ') === MERGE_HEADING &&
-        !heading.closest('blockquote') &&
-        isVisible(heading, pageWindow, true),
-    );
-    const blocks = body.querySelectorAll('pre');
-    if (headings.length !== 1 || blocks.length !== 1) continue;
-    const block = blocks[0]!;
-    if (!isVisible(block, pageWindow, true) || block.closest('blockquote')) continue;
-    if (!(headings[0]!.compareDocumentPosition(block) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
-    // A later section cannot donate its code block to this designated heading.
-    if (
-      [...body.querySelectorAll('h1, h2, h3, h4, h5, h6')].some(
-        (heading) =>
-          heading !== headings[0] &&
-          headings[0]!.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING &&
-          heading.compareDocumentPosition(block) & Node.DOCUMENT_POSITION_FOLLOWING,
-      )
-    )
-      continue;
-    const payload = block.textContent ?? '';
-    if (!payload.trim()) continue;
-    // Rendered GitHub HTML does not expose the raw marker. These are heading candidates only.
-    candidates.push(payload);
+  // Without a heading, only a comment made of exactly one ```git block qualifies.
+  if (blocks.length !== 1) return null;
+  const block = blocks[0]!;
+  if (!COMMIT_LANGUAGES.has(codeLanguage(block) ?? '')) return null;
+  if (!isVisible(block, pageWindow, true) || !isOnlyBlock(body, block)) return null;
+  return { text: blockText(block), hint: 'full', heading: null };
+}
+
+/** Merge message proposals in the conversation, oldest first. */
+export function readProposals(
+  pageDocument: Document,
+  pageWindow: Window,
+  root: HTMLElement | null = detectLayout(pageDocument)?.host ?? null,
+): MergeProposal[] {
+  if (!root) return [];
+  const proposals: MergeProposal[] = [];
+  const seen = new Set<HTMLElement>();
+  for (const comment of root.querySelectorAll<HTMLElement>(COMMENT_SELECTOR)) {
+    const body = findCommentBody(comment);
+    if (!body || seen.has(body)) continue;
+    seen.add(body);
+    if (hasActiveCommentEditor(comment, pageWindow)) continue;
+    const source = proposalSource(body, pageWindow);
+    if (!source || !source.text.trim()) continue;
+    const header = findCommentHeader(comment, body);
+    const { subject, body: message } = splitCommitMessage(source.text, source.hint);
+    proposals.push({
+      subject,
+      body: message,
+      sourceId: findCommentId(comment, header),
+      author: authorOf(header),
+      createdAt: header ? timestampOf(header) : null,
+      heading: source.heading,
+    });
   }
-  return candidates;
+  // The Overview lists newest comments first: order by creation time when every source has one.
+  if (proposals.every((proposal) => proposal.createdAt !== null)) {
+    proposals.sort((left, right) => left.createdAt! - right.createdAt!);
+  }
+  return proposals;
+}
+
+/** Complete proposals set the title; body-only templates keep it and prefix the PR title. */
+export function composeMergeMessage(
+  proposal: MergeProposal,
+  pullRequestTitle: string | null,
+): MergeMessage | null {
+  if (proposal.subject) return { title: proposal.subject, description: proposal.body };
+  if (!pullRequestTitle) return null;
+  return { title: null, description: `${pullRequestTitle}\n\n${proposal.body}` };
+}
+
+/** Full text for the clipboard: subject (or PR title), a blank line, then the body. */
+export function mergeMessageText(message: MergeMessage): string {
+  return message.title ? `${message.title}\n\n${message.description}` : message.description;
+}
+
+export function proposalKey(proposal: MergeProposal): string {
+  return JSON.stringify([proposal.sourceId, proposal.subject, proposal.body]);
 }

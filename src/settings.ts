@@ -1,6 +1,8 @@
 export type Settings = {
   enabled: boolean;
   language: 'auto' | 'fr' | 'en';
+  /** GitHub pull request view: detected automatically unless the user pins one. */
+  layout: 'auto' | 'classic' | 'overview';
   animations: boolean;
   stateColors: boolean;
   mergeHelper: boolean;
@@ -9,6 +11,7 @@ export type Settings = {
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   enabled: true,
   language: 'auto',
+  layout: 'auto',
   animations: true,
   stateColors: true,
   mergeHelper: false,
@@ -16,7 +19,15 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
 
 const STORAGE_KEY = 'tlpr-settings:v1';
 const BOOLEAN_KEYS = ['enabled', 'animations', 'stateColors', 'mergeHelper'] as const;
+const CHOICES = {
+  language: ['auto', 'fr', 'en'],
+  layout: ['auto', 'classic', 'overview'],
+} as const;
 let pendingWrite: Promise<unknown> = Promise.resolve();
+
+function isChoice<K extends keyof typeof CHOICES>(key: K, value: unknown): value is Settings[K] {
+  return (CHOICES[key] as readonly unknown[]).includes(value);
+}
 
 function sanitizeSettings(value: unknown, fallback: Settings = DEFAULT_SETTINGS): Settings {
   const settings = { ...fallback };
@@ -25,9 +36,8 @@ function sanitizeSettings(value: unknown, fallback: Settings = DEFAULT_SETTINGS)
   for (const key of BOOLEAN_KEYS) {
     if (typeof stored[key] === 'boolean') settings[key] = stored[key];
   }
-  if (stored.language === 'auto' || stored.language === 'fr' || stored.language === 'en') {
-    settings.language = stored.language;
-  }
+  if (isChoice('language', stored.language)) settings.language = stored.language;
+  if (isChoice('layout', stored.layout)) settings.layout = stored.layout;
   return settings;
 }
 

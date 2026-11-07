@@ -127,7 +127,7 @@
     "message": "Aide au message de fusion"
   },
   "popupMergeHelperDescription": {
-    "message": "Insère le texte préparé à votre demande. Ne fusionne jamais une pull request."
+    "message": "Insère le message de fusion proposé à votre demande. Ne fusionne jamais une pull request."
   },
   "popupOptional": {
     "message": "Facultatif"
@@ -154,31 +154,28 @@
     "message": "Réessayer"
   },
   "mergeOpen": {
-    "message": "Préparer le message"
+    "message": "Message de fusion"
   },
   "mergeTitle": {
-    "message": "Préparer le message de fusion"
+    "message": "Message de fusion proposé"
   },
   "mergeDetectedNotice": {
-    "message": "Source : le titre visible « Merge commit body » du commentaire et son bloc de code. Le marqueur masqué ne peut pas être vérifié ici. Consultez l’aperçu si nécessaire. L’insertion ne fusionne jamais la pull request."
+    "message": "Lu dans cette conversation : une section « 🧾 Proposed merge commit » ou « Merge commit body », ou un commentaire composé d’un seul bloc ```git. L’insertion ne fusionne jamais la pull request."
   },
   "mergeCandidateLabel": {
-    "message": "Commentaire à utiliser"
-  },
-  "mergeCandidatePlaceholder": {
-    "message": "Choisir un commentaire…"
+    "message": "Proposition à utiliser"
   },
   "mergeCandidateOption": {
     "message": "Commentaire {count}"
   },
   "mergePreviewLabel": {
-    "message": "Titre de la pull request et corps du message"
+    "message": "Message de fusion"
   },
   "mergeMissingTitle": {
-    "message": "Le titre de cette pull request est introuvable. Aucun texte n’a été préparé."
+    "message": "Cette proposition ne contient qu’un corps et le titre de la pull request est introuvable. Rien n’a été préparé."
   },
   "mergeNoCandidates": {
-    "message": "Aucun commentaire avec le titre « Merge commit body » et un bloc de code unique n’a été trouvé."
+    "message": "Aucun message de fusion proposé dans cette conversation."
   },
   "mergeCopy": {
     "message": "Copier le message"
@@ -199,22 +196,22 @@
     "message": "Auto"
   },
   "mergeInsert": {
-    "message": "Insérer"
+    "message": "Insérer le message proposé"
   },
   "mergeInserted": {
-    "message": "Message inséré"
+    "message": "Inséré. Vérifiez-le, puis confirmez la fusion."
   },
   "mergeEdited": {
-    "message": "Votre description a été modifiée. Elle est conservée ; le texte préparé est ci-dessous."
+    "message": "Vous avez modifié ce message. Cliquez sur « Remplacer mes modifications » pour utiliser quand même la proposition."
   },
   "mergeFormUnavailable": {
     "message": "Le formulaire a changé. Rouvrez-le pour insérer le message."
   },
   "mergeChooseSource": {
-    "message": "Choisissez un commentaire, vérifiez le texte, puis cliquez sur Insérer."
+    "message": "La proposition choisie a changé. Vérifiez l’aperçu, puis insérez à nouveau."
   },
   "mergePreview": {
-    "message": "Voir la source"
+    "message": "Aperçu"
   },
   "popupInfo": {
     "message": "Infos"
@@ -224,5 +221,50 @@
   },
   "popupVersion": {
     "message": "Version"
+  },
+  "popupLayout": {
+    "message": "Vue GitHub"
+  },
+  "popupLayoutDescription": {
+    "message": "TL;PR détecte la conversation classique et la nouvelle page Overview. Imposez-en une seulement si la détection échoue."
+  },
+  "popupLayoutAuto": {
+    "message": "Auto"
+  },
+  "popupLayoutClassic": {
+    "message": "Classique"
+  },
+  "popupLayoutOverview": {
+    "message": "Overview"
+  },
+  "viewClassic": {
+    "message": "Vue classique"
+  },
+  "viewOverview": {
+    "message": "Vue Overview"
+  },
+  "mergeCandidateLatest": {
+    "message": "la plus récente"
+  },
+  "mergeReplace": {
+    "message": "Remplacer mes modifications"
+  },
+  "mergeUndo": {
+    "message": "Annuler"
+  },
+  "mergeUndone": {
+    "message": "Texte précédent restauré."
+  },
+  "mergeSubjectLabel": {
+    "message": "Titre du commit"
+  },
+  "mergeDescriptionLabel": {
+    "message": "Description détaillée"
+  },
+  "mergeKeepsTitle": {
+    "message": "Inchangé (titre par défaut de GitHub)"
+  },
+  "mergeViewSource": {
+    "message": "Voir le commentaire source"
   }
 }

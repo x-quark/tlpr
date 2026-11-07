@@ -1,0 +1,167 @@
+<!--
+  Pull request Overview page (GitHub public preview, 2026-11-05), reduced to the structure
+  rendered by its public bundle: OverviewComponent > Description section, CommentsSection
+  (h2#overview-comments, newest-first list of timeline items) and the status pane.
+  Hashed CSS module class names are kept only where TL;PR must ignore them. Content is fictional.
+-->
+<div class="width-full layout__Zp" data-side-panel-open="false">
+  <div class="prc-PageLayout-PageLayoutRoot--KH-d">
+    <div class="prc-PageLayout-PageLayoutContent">
+      <div class="d-flex gap-4 flex-column">
+        <div class="forYou__xv">
+          <section aria-label="Merge status">
+            <div data-testid="mini-status">Checks 1 failing</div>
+          </section>
+        </div>
+        <section tabindex="-1" class="container__desc" aria-label="Description">
+          <div class="viewer__eu">
+            <div class="markdown-body" data-test-height="420">
+              <h2>Problem and behavior</h2>
+              <p>Example description long enough to fold.</p>
+            </div>
+          </div>
+        </section>
+        <section class="container__comments">
+          <div class="headerRow__xu">
+            <div class="heading__oD">
+              <div class="headingRow__Y0">
+                <h2 id="overview-comments" tabindex="-1">Comments</h2>
+              </div>
+            </div>
+            <div class="filters__k_">
+              <button type="button" aria-label="Sort comments: Newest">Newest</button>
+            </div>
+          </div>
+          <div class="prc-Stack-Stack" data-direction="vertical">
+            <div class="composer__frame"><textarea placeholder="Add a comment"></textarea></div>
+            <div data-testid="timeline-item" data-item-type="issue">
+              <article class="container__rfx-3s" id="issuecomment-106" tabindex="-1">
+                <div class="header__8DCKRC">
+                  <div data-testid="comment-header">
+                    <div data-testid="comment-header-left-side-items">
+                      <a data-testid="avatar-link" href="/octocat">octocat</a> commented
+                      <a href="https://github.com/example/project/pull/42#issuecomment-106"
+                        ><relative-time datetime="2026-11-07T10:06:00Z">now</relative-time></a
+                      >
+                    </div>
+                    <div data-testid="comment-header-right-side-items">
+                      <button data-testid="comment-header-hamburger" type="button">…</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="body__APdwN2">
+                  <div class="markdown-body" data-test-height="200"><p>Newest comment</p></div>
+                </div>
+              </article>
+            </div>
+            <div data-testid="timeline-item" data-item-type="issue">
+              <article class="container__rfx-3s" id="issuecomment-105" tabindex="-1">
+                <div class="header__8DCKRC">
+                  <div data-testid="comment-header">
+                    <div data-testid="comment-header-left-side-items">
+                      <a data-testid="avatar-link" href="/apps/github-actions">github-actions</a>
+                      <span data-component="Label">Bot</span> commented
+                      <relative-time datetime="2026-11-07T10:05:00Z">now</relative-time>
+                    </div>
+                    <div data-testid="comment-header-right-side-items"></div>
+                  </div>
+                </div>
+                <div class="body__APdwN2">
+                  <div class="markdown-body" data-test-height="400"><p>Automated report</p></div>
+                </div>
+              </article>
+            </div>
+            <div data-testid="timeline-item" data-item-type="commits">
+              <div data-testid="timeline-commit-group">
+                <div data-testid="timeline-commit-row">
+                  <relative-time datetime="2026-11-07T10:04:00Z">now</relative-time> Add tests
+                </div>
+              </div>
+            </div>
+            <div data-testid="timeline-item" data-item-type="review_summary">
+              <article class="container__rfx-3s" id="pullrequestreview-103" tabindex="-1">
+                <div class="header__8DCKRC">
+                  <div data-testid="comment-header">
+                    <div data-testid="comment-header-left-side-items">
+                      <a data-testid="avatar-link" href="/reviewer">reviewer</a> reviewed
+                      <relative-time datetime="2026-11-07T10:03:00Z">now</relative-time>
+                    </div>
+                    <div data-testid="comment-header-right-side-items"></div>
+                  </div>
+                </div>
+                <div class="body__APdwN2">
+                  <div class="threads__list">
+                    <article class="container__thread" id="pullrequestreview-103-discussion_r900">
+                      <div class="header__thread">
+                        <div data-testid="comment-header">
+                          <a data-testid="avatar-link" href="/reviewer">reviewer</a>
+                          <relative-time datetime="2026-11-07T10:03:00Z">now</relative-time>
+                          <div data-testid="comment-header-right-side-items"></div>
+                        </div>
+                      </div>
+                      <div class="markdown-body" data-test-height="260"><p>Thread comment</p></div>
+                    </article>
+                  </div>
+                </div>
+              </article>
+            </div>
+            <div data-testid="timeline-item" data-item-type="issue">
+              <article class="container__rfx-3s" id="issuecomment-102" tabindex="-1">
+                <div class="header__8DCKRC">
+                  <div data-testid="comment-header">
+                    <div data-testid="comment-header-left-side-items">
+                      <a data-testid="avatar-link" href="/octocat">octocat</a> commented
+                      <relative-time datetime="2026-11-07T10:02:00Z">now</relative-time>
+                    </div>
+                    <div data-testid="comment-header-right-side-items"></div>
+                  </div>
+                </div>
+                <div class="body__APdwN2">
+                  <div class="markdown-body" data-test-height="100"><p>Short reply</p></div>
+                </div>
+              </article>
+            </div>
+            <div data-testid="timeline-item" data-item-type="issue">
+              <article class="container__rfx-3s" id="issuecomment-101" tabindex="-1">
+                <div class="header__8DCKRC">
+                  <div data-testid="comment-header">
+                    <div data-testid="comment-header-left-side-items">
+                      <a data-testid="avatar-link" href="/octocat">octocat</a> commented
+                      <relative-time datetime="2026-11-07T10:01:00Z">now</relative-time>
+                    </div>
+                    <div data-testid="comment-header-right-side-items"></div>
+                  </div>
+                </div>
+                <div class="body__APdwN2">
+                  <div class="markdown-body" data-test-height="300"><p>Second comment</p></div>
+                </div>
+              </article>
+            </div>
+            <div data-testid="timeline-item" data-item-type="issue">
+              <article class="container__rfx-3s" id="issuecomment-100" tabindex="-1">
+                <div class="header__8DCKRC">
+                  <div data-testid="comment-header">
+                    <div data-testid="comment-header-left-side-items">
+                      <a data-testid="avatar-link" href="/octocat">octocat</a> commented
+                      <relative-time datetime="2026-11-07T10:00:00Z">now</relative-time>
+                    </div>
+                    <div data-testid="comment-header-right-side-items"></div>
+                  </div>
+                </div>
+                <div class="body__APdwN2">
+                  <div class="markdown-body" data-test-height="300"><p>Oldest comment</p></div>
+                </div>
+              </article>
+            </div>
+          </div>
+          <p class="fgColor-muted">Showing 7 of 7 comments</p>
+        </section>
+      </div>
+      <footer>Try visiting the new homes for merge box and timeline.</footer>
+    </div>
+    <div class="prc-PageLayout-Pane" aria-labelledby="overview-status-and-details">
+      <h3 class="sr-only" id="overview-status-and-details">Status and details</h3>
+      <div data-testid="sticky-sidebar">Reviewers</div>
+    </div>
+  </div>
+</div>

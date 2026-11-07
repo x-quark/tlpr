@@ -78,6 +78,33 @@ afterEach(() => {
 });
 
 describe('toolbar popup', () => {
+  it('pins a GitHub view from its own listbox without touching the language', async () => {
+    cleanup = await mountPopup(document);
+    const toggle = document.querySelector<HTMLButtonElement>('[data-layout-toggle]')!;
+    const list = document.querySelector<HTMLElement>('#layout-options')!;
+    const language = document.querySelector<HTMLButtonElement>('[data-language-toggle]')!;
+    expect(toggle.textContent).toContain('Auto');
+    language.click();
+    toggle.click();
+    expect(list.hidden).toBe(false);
+    expect(document.querySelector<HTMLElement>('#language-options')!.hidden).toBe(true);
+    expect(document.activeElement).toBe(document.querySelector('[data-layout="auto"]'));
+    document
+      .querySelector('[data-layout="auto"]')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(document.querySelector('[data-layout="overview"]'));
+    document.querySelector<HTMLButtonElement>('[data-layout="overview"]')!.click();
+    await vi.waitFor(() => expect(stored.layout).toBe('overview'));
+    await vi.waitFor(() => expect(toggle.disabled).toBe(false));
+    expect(stored.language).toBe('auto');
+    expect(list.hidden).toBe(true);
+    expect(document.activeElement).toBe(toggle);
+    expect(toggle.textContent).toContain('Overview');
+    expect(document.querySelector('[data-layout="overview"]')?.getAttribute('aria-selected')).toBe(
+      'true',
+    );
+  });
+
   it('starts new installs in browser-detection mode and renders the select arrow as a stable SVG', async () => {
     stored = { ...DEFAULT_SETTINGS };
     cleanup = await mountPopup(document);
