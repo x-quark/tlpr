@@ -1,16 +1,17 @@
-import { readTitle, readCandidates } from './merge-source';
-import { mountMergeFormControls, type MergeFormLabels } from './merge-form';
+import { icons } from './icons';
+import {
+  composeMergeMessage,
+  mergeMessageText,
+  proposalKey,
+  readProposals,
+  readTitle,
+} from './merge-source';
+import { mountMergeFormControls, proposalLabel, type MergeFormLabels } from './merge-form';
 export type MergeHelperHandle = (() => void) & { refresh: () => void };
 export interface MergeHelperLabels extends MergeFormLabels {
   mergeOpen: string;
   mergeTitle: string;
-  mergeDetectedNotice: string;
-  mergeCandidateLabel: string;
-  mergeCandidatePlaceholder: string;
-  mergeCandidateOption: string;
   mergePreviewLabel: string;
-  mergeMissingTitle: string;
-  mergeNoCandidates: string;
   mergeCopy: string;
   mergeCopying: string;
   mergeCopied: string;
@@ -37,7 +38,11 @@ export function mountMergeHelper(
     button.textContent = text;
     return button;
   };
-  const opener = makeButton('tlpr-merge-open', labels.mergeOpen);
+  const opener = makeButton('tlpr-btn tlpr-merge-open', '');
+  opener.innerHTML = icons.merge;
+  opener.append(pageDocument.createElement('span'));
+  opener.lastElementChild!.textContent = labels.mergeOpen;
+  opener.title = labels.mergeOpen;
   opener.setAttribute('aria-haspopup', 'dialog');
   opener.setAttribute('aria-expanded', 'false');
   container.append(opener);
@@ -49,7 +54,7 @@ export function mountMergeHelper(
     if (disposed || closePanel) return;
     const sourcePage = `${pageWindow.location.origin}${pageWindow.location.pathname}`;
     const title = readTitle(pageDocument, pageWindow);
-    const candidates = readCandidates(pageDocument, pageWindow);
+    const proposals = readProposals(pageDocument, pageWindow);
     const panelId = `tlpr-merge-${++nextPanelId}`;
     const overlay = pageDocument.createElement('div');
     overlay.className = 'tlpr-merge-overlay';
@@ -93,24 +98,27 @@ export function mountMergeHelper(
     dialog.append(header, notice);
 
     let selection: HTMLFieldSetElement | null = null;
-    if (title && candidates.length > 1) {
+    if (proposals.length > 1) {
       selection = pageDocument.createElement('fieldset');
       selection.className = 'tlpr-merge-candidates';
       const candidateLabel = pageDocument.createElement('legend');
       candidateLabel.className = 'tlpr-merge-candidate-label';
       candidateLabel.textContent = labels.mergeCandidateLabel;
       selection.append(candidateLabel);
-      candidates.forEach((_, index) => {
+      const latest = proposals.length - 1;
+      proposals.forEach((proposal, index) => {
         const option = pageDocument.createElement('label');
         option.className = 'tlpr-merge-candidate-option';
         const radio = pageDocument.createElement('input');
         radio.type = 'radio';
         radio.className = 'tlpr-merge-candidate-radio';
         radio.name = `${panelId}-candidate`;
-        radio.value = String(index);
+        radio.value = proposalKey(proposal);
+        // The most recent proposal is preselected; every choice stays visible and switchable.
+        radio.checked = index === latest;
         const text = pageDocument.createElement('span');
         text.className = 'tlpr-merge-candidate-text';
-        text.textContent = labels.mergeCandidateOption.replace('{count}', String(index + 1));
+        text.textContent = proposalLabel(proposal, index, index === latest, labels);
         option.append(radio, text);
         selection!.append(option);
       });
@@ -144,18 +152,16 @@ export function mountMergeHelper(
     let closed = false;
     const updatePreview = (): void => {
       if (pending || closed) return;
-      const selected = selection
-        ? (selection.querySelector<HTMLInputElement>('input:checked')?.value ?? '')
-        : candidates.length === 1
-          ? '0'
-          : '';
-      const payload = selected === '' ? undefined : candidates[Number(selected)];
-      preview.value = title && payload !== undefined ? `${title}\n\n${payload}` : '';
+      const selected = selection?.querySelector<HTMLInputElement>('input:checked')?.value;
+      const proposal =
+        proposals.find((candidate) => proposalKey(candidate) === selected) ?? proposals.at(-1);
+      const message = proposal ? composeMergeMessage(proposal, title) : null;
+      preview.value = message ? mergeMessageText(message) : '';
       copy.disabled = !preview.value;
-      status.textContent = !title
-        ? labels.mergeMissingTitle
-        : candidates.length === 0
-          ? labels.mergeNoCandidates
+      status.textContent = !proposal
+        ? labels.mergeNoCandidates
+        : !message
+          ? labels.mergeMissingTitle
           : '';
       status.dataset.state = status.textContent ? 'error' : '';
     };
@@ -223,12 +229,16 @@ export function mountMergeHelper(
     const onFocusIn = (): void => {
       if (!dialog.contains(pageDocument.activeElement)) close.focus();
     };
+    const onOverlayClick = (event: MouseEvent): void => {
+      if (event.target === overlay) closeThisPanel();
+    };
     const onClose = (): void => closeThisPanel();
     const closeThisPanel = (restoreFocus = true): void => {
       if (closed) return;
       closed = true;
       pageDocument.removeEventListener('keydown', onKeyDown, true);
       pageDocument.removeEventListener('focusin', onFocusIn);
+      overlay.removeEventListener('click', onOverlayClick);
       close.removeEventListener('click', onClose);
       copy.removeEventListener('click', onCopy);
       selection?.removeEventListener('change', updatePreview);
@@ -242,6 +252,7 @@ export function mountMergeHelper(
     closePanel = closeThisPanel;
     close.addEventListener('click', onClose);
     copy.addEventListener('click', onCopy);
+    overlay.addEventListener('click', onOverlayClick);
     selection?.addEventListener('change', updatePreview);
     pageDocument.addEventListener('keydown', onKeyDown, true);
     pageDocument.addEventListener('focusin', onFocusIn);

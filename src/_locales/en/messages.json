@@ -127,7 +127,7 @@
     "message": "Merge message helper"
   },
   "popupMergeHelperDescription": {
-    "message": "Insert prepared text when you ask. Never merges a pull request."
+    "message": "Insert the proposed merge message when you ask. Never merges a pull request."
   },
   "popupOptional": {
     "message": "Optional"
@@ -154,31 +154,28 @@
     "message": "Try again"
   },
   "mergeOpen": {
-    "message": "Prepare merge text"
+    "message": "Merge message"
   },
   "mergeTitle": {
-    "message": "Prepare merge text"
+    "message": "Proposed merge message"
   },
   "mergeDetectedNotice": {
-    "message": "Source: the visible “Merge commit body” comment heading and its code block. The hidden marker cannot be verified here. Review the preview if needed. Insertion never merges the pull request."
+    "message": "Read from this conversation: a “🧾 Proposed merge commit” or “Merge commit body” section, or a comment made of one ```git block. Inserting never merges the pull request."
   },
   "mergeCandidateLabel": {
-    "message": "Comment to use"
-  },
-  "mergeCandidatePlaceholder": {
-    "message": "Choose a comment…"
+    "message": "Proposal to use"
   },
   "mergeCandidateOption": {
     "message": "Comment {count}"
   },
   "mergePreviewLabel": {
-    "message": "Pull request title and message body"
+    "message": "Merge message"
   },
   "mergeMissingTitle": {
-    "message": "The pull request title could not be found. No text has been prepared."
+    "message": "This proposal only has a body and the pull request title could not be read. Nothing was prepared."
   },
   "mergeNoCandidates": {
-    "message": "No comment with the heading “Merge commit body” and one code block was found."
+    "message": "No proposed merge message was found in this conversation."
   },
   "mergeCopy": {
     "message": "Copy message"
@@ -199,22 +196,22 @@
     "message": "Auto"
   },
   "mergeInsert": {
-    "message": "Insert"
+    "message": "Insert proposed message"
   },
   "mergeInserted": {
-    "message": "Message inserted"
+    "message": "Inserted. Review it, then confirm the merge."
   },
   "mergeEdited": {
-    "message": "Your description has been edited. It was kept unchanged; the prepared text is below."
+    "message": "You edited this message. Select “Replace my edits” to use the proposal anyway."
   },
   "mergeFormUnavailable": {
     "message": "The merge form changed. Reopen it to insert the message."
   },
   "mergeChooseSource": {
-    "message": "Choose a comment, review its text, then select Insert."
+    "message": "The chosen proposal changed. Check the preview, then insert again."
   },
   "mergePreview": {
-    "message": "Preview source"
+    "message": "Preview"
   },
   "popupInfo": {
     "message": "Info"
@@ -224,5 +221,50 @@
   },
   "popupVersion": {
     "message": "Version"
+  },
+  "popupLayout": {
+    "message": "GitHub view"
+  },
+  "popupLayoutDescription": {
+    "message": "TL;PR detects the classic conversation and the new Overview page. Pin one only if detection fails."
+  },
+  "popupLayoutAuto": {
+    "message": "Auto"
+  },
+  "popupLayoutClassic": {
+    "message": "Classic"
+  },
+  "popupLayoutOverview": {
+    "message": "Overview"
+  },
+  "viewClassic": {
+    "message": "Classic view"
+  },
+  "viewOverview": {
+    "message": "Overview"
+  },
+  "mergeCandidateLatest": {
+    "message": "latest"
+  },
+  "mergeReplace": {
+    "message": "Replace my edits"
+  },
+  "mergeUndo": {
+    "message": "Undo"
+  },
+  "mergeUndone": {
+    "message": "Previous text restored."
+  },
+  "mergeSubjectLabel": {
+    "message": "Commit message"
+  },
+  "mergeDescriptionLabel": {
+    "message": "Extended description"
+  },
+  "mergeKeepsTitle": {
+    "message": "Unchanged (GitHub default)"
+  },
+  "mergeViewSource": {
+    "message": "View source comment"
   }
 }

@@ -7,6 +7,18 @@ import {
   type Settings,
 } from '../settings';
 
+type ChoiceName = 'language' | 'layout';
+type SwitchName = Exclude<keyof Settings, ChoiceName>;
+
+/** One closed select: a button and a listbox of option buttons, like the language picker. */
+interface Select {
+  name: ChoiceName;
+  toggle: HTMLButtonElement;
+  list: HTMLElement;
+  options: HTMLButtonElement[];
+  value: HTMLElement;
+}
+
 export async function mountPopup(root: Document): Promise<() => void> {
   const main = root.querySelector<HTMLElement>('main')!;
   const form = root.querySelector<HTMLFormElement>('form')!;
@@ -19,14 +31,22 @@ export async function mountPopup(root: Document): Promise<() => void> {
   const infoPanel = root.querySelector<HTMLElement>('#popup-info')!;
   root.querySelector<HTMLElement>('[data-version]')!.textContent =
     chrome.runtime.getManifest().version;
-  const languageToggle = root.querySelector<HTMLButtonElement>('[data-language-toggle]')!;
-  const languageList = root.querySelector<HTMLElement>('#language-options')!;
-  const languageOptions = [...root.querySelectorAll<HTMLButtonElement>('[data-language]')];
+  const selects: Select[] = (['language', 'layout'] as const).flatMap((name) => {
+    const toggle = root.querySelector<HTMLButtonElement>(`[data-${name}-toggle]`);
+    const list = root.querySelector<HTMLElement>(`#${name}-options`);
+    const value = root.querySelector<HTMLElement>(`#${name}-value`);
+    if (!toggle || !list || !value) return [];
+    const options = [...list.querySelectorAll<HTMLButtonElement>(`[data-${name}]`)];
+    return [{ name, toggle, list, options, value }];
+  });
   const controls = [...root.querySelectorAll<HTMLInputElement>('input[name]')];
   let settings: Settings = { ...DEFAULT_SETTINGS };
   let disposed = false;
   let loaded = false;
   let revision = 0;
+
+  const optionValue = (select: Select, option: HTMLElement): string | undefined =>
+    option.dataset[select.name];
 
   function render(next: Settings): void {
     settings = next;
@@ -44,13 +64,17 @@ export async function mountPopup(root: Document): Promise<() => void> {
     for (const element of root.querySelectorAll<HTMLElement>('[data-i18n]')) {
       element.textContent = message(element.dataset.i18n as MessageKey);
     }
-    for (const control of controls)
-      control.checked = next[control.name as Exclude<keyof Settings, 'language'>];
-    for (const option of languageOptions)
-      option.setAttribute('aria-selected', String(option.dataset.language === next.language));
-    root.querySelector<HTMLElement>('#language-value')!.textContent = languageOptions.find(
-      (option) => option.dataset.language === next.language,
-    )!.textContent;
+    for (const control of controls) control.checked = next[control.name as SwitchName];
+    for (const select of selects) {
+      for (const option of select.options)
+        option.setAttribute(
+          'aria-selected',
+          String(optionValue(select, option) === next[select.name]),
+        );
+      select.value.textContent =
+        select.options.find((option) => optionValue(select, option) === next[select.name])
+          ?.textContent ?? '';
+    }
     activity.textContent = message(next.enabled ? 'popupOn' : 'popupOff');
     activity.dataset.enabled = String(next.enabled);
   }
@@ -59,8 +83,10 @@ export async function mountPopup(root: Document): Promise<() => void> {
     form.setAttribute('aria-busy', String(value));
     fieldset.disabled = value || !loaded;
     for (const control of controls) control.disabled = value || !loaded;
-    languageToggle.disabled = value || !loaded;
-    for (const option of languageOptions) option.disabled = value || !loaded;
+    for (const select of selects) {
+      select.toggle.disabled = value || !loaded;
+      for (const option of select.options) option.disabled = value || !loaded;
+    }
     retry.disabled = value;
   }
 
@@ -94,8 +120,7 @@ export async function mountPopup(root: Document): Promise<() => void> {
   }
 
   async function persist(
-    name: keyof Settings,
-    value: boolean | Settings['language'],
+    patch: Partial<Settings>,
     control: HTMLInputElement | HTMLButtonElement,
   ): Promise<void> {
     if (!loaded || form.getAttribute('aria-busy') === 'true') return;
@@ -104,7 +129,7 @@ export async function mountPopup(root: Document): Promise<() => void> {
     error.textContent = '';
     status.textContent = message('popupSaving');
     try {
-      const next = await saveSettings({ [name]: value });
+      const next = await saveSettings(patch);
       if (disposed) return;
       render(next);
       status.textContent = '';
@@ -123,69 +148,85 @@ export async function mountPopup(root: Document): Promise<() => void> {
     }
   }
 
-  function closeLanguage(restoreFocus = false): void {
-    languageList.hidden = true;
-    languageToggle.setAttribute('aria-expanded', 'false');
-    if (restoreFocus) languageToggle.focus();
+  function closeSelect(select: Select, restoreFocus = false): void {
+    select.list.hidden = true;
+    select.toggle.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) select.toggle.focus();
   }
-  function openLanguage(index?: number): void {
-    if (languageToggle.disabled) return;
+  function openSelect(select: Select, index?: number): void {
+    if (select.toggle.disabled) return;
     closeInfo();
     dismissHelp();
-    languageList.hidden = false;
-    languageToggle.setAttribute('aria-expanded', 'true');
-    (languageOptions[
-      index ?? languageOptions.findIndex((option) => option.dataset.language === settings.language)
-    ] ?? languageOptions[0])!.focus();
+    for (const other of selects) if (other !== select) closeSelect(other);
+    select.list.hidden = false;
+    select.toggle.setAttribute('aria-expanded', 'true');
+    (select.options[
+      index ??
+        select.options.findIndex((option) => optionValue(select, option) === settings[select.name])
+    ] ?? select.options[0])!.focus();
   }
-  const onLanguageToggle = () => (languageList.hidden ? openLanguage() : closeLanguage(true));
-  const onLanguageChoose = (event: MouseEvent) => {
-    const option =
-      event.target instanceof Element
-        ? event.target.closest<HTMLButtonElement>('[data-language]')
-        : null;
-    if (!option || option.disabled || languageList.hidden) return;
-    const value = option.dataset.language as Settings['language'];
-    closeLanguage(true);
-    void persist('language', value, languageToggle);
+  const selectOf = (target: EventTarget | null): Select | undefined =>
+    target instanceof Node
+      ? selects.find((select) => select.toggle.contains(target) || select.list.contains(target))
+      : undefined;
+  const onSelectToggle = (event: MouseEvent) => {
+    const select = selects.find(
+      (candidate) => event.target instanceof Node && candidate.toggle.contains(event.target),
+    );
+    if (!select) return;
+    if (select.list.hidden) openSelect(select);
+    else closeSelect(select, true);
   };
-  const onLanguageKey = (event: KeyboardEvent) => {
-    if (event.target === languageToggle) {
+  const onSelectChoose = (event: MouseEvent) => {
+    const select = selectOf(event.target);
+    if (!select || !(event.target instanceof Element) || select.list.hidden) return;
+    const option = event.target.closest<HTMLButtonElement>(`[data-${select.name}]`);
+    if (!option || option.disabled) return;
+    const value = optionValue(select, option);
+    closeSelect(select, true);
+    if (value !== undefined)
+      void persist({ [select.name]: value } as Partial<Settings>, select.toggle);
+  };
+  const onSelectKey = (event: KeyboardEvent) => {
+    const select = selectOf(event.target);
+    if (!select) return;
+    if (event.target === select.toggle) {
       if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
         event.preventDefault();
-        openLanguage(
-          event.key === 'Home' ? 0 : event.key === 'End' ? languageOptions.length - 1 : undefined,
+        openSelect(
+          select,
+          event.key === 'Home' ? 0 : event.key === 'End' ? select.options.length - 1 : undefined,
         );
       }
       return;
     }
-    const current = languageOptions.indexOf(event.target as HTMLButtonElement);
-    if (current < 0 || languageList.hidden) return;
+    const current = select.options.indexOf(event.target as HTMLButtonElement);
+    if (current < 0 || select.list.hidden) return;
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
-      closeLanguage(true);
+      closeSelect(select, true);
       return;
     }
     if (event.key === 'Tab') {
-      closeLanguage(true);
+      closeSelect(select, true);
       return;
     }
+    const count = select.options.length;
     let next: number;
-    if (event.key === 'ArrowDown') next = (current + 1) % languageOptions.length;
-    else if (event.key === 'ArrowUp')
-      next = (current + languageOptions.length - 1) % languageOptions.length;
+    if (event.key === 'ArrowDown') next = (current + 1) % count;
+    else if (event.key === 'ArrowUp') next = (current + count - 1) % count;
     else if (event.key === 'Home') next = 0;
-    else if (event.key === 'End') next = languageOptions.length - 1;
+    else if (event.key === 'End') next = count - 1;
     else if (event.key.length === 1 && event.key !== ' ') {
-      const match = languageOptions.findIndex((option) =>
+      const match = select.options.findIndex((option) =>
         option.textContent?.trim().toLocaleLowerCase().startsWith(event.key.toLocaleLowerCase()),
       );
       if (match < 0) return;
       next = match;
     } else return;
     event.preventDefault();
-    languageOptions[next]!.focus();
+    select.options[next]!.focus();
   };
   const onEntryEnd = (event: Event) => {
     if (event.target === main) main.classList.remove('popup-enter');
@@ -194,7 +235,7 @@ export async function mountPopup(root: Document): Promise<() => void> {
   const onChange = (event: Event) => {
     const control = event.target;
     if (control instanceof HTMLInputElement)
-      void persist(control.name as keyof Settings, control.checked, control);
+      void persist({ [control.name as SwitchName]: control.checked }, control);
   };
   const onRetry = () => {
     void load();
@@ -260,7 +301,7 @@ export async function mountPopup(root: Document): Promise<() => void> {
       closeInfo(true);
       return;
     }
-    closeLanguage();
+    for (const select of selects) closeSelect(select);
     dismissHelp();
     infoPanel.hidden = false;
     infoToggle.setAttribute('aria-expanded', 'true');
@@ -270,14 +311,18 @@ export async function mountPopup(root: Document): Promise<() => void> {
     if (!(event.target instanceof Node)) return;
     if (!infoPanel.contains(event.target) && !infoToggle.contains(event.target))
       closeInfo(infoPanel.contains(root.activeElement));
-    if (!languageList.contains(event.target) && !languageToggle.contains(event.target))
-      closeLanguage(languageList.contains(root.activeElement));
+    for (const select of selects) {
+      if (!select.list.contains(event.target) && !select.toggle.contains(event.target))
+        closeSelect(select, select.list.contains(root.activeElement));
+    }
   };
   const onOverlayFocus = (event: FocusEvent) => {
     if (!(event.target instanceof Node)) return;
     if (!infoPanel.contains(event.target) && !infoToggle.contains(event.target)) closeInfo();
-    if (!languageList.contains(event.target) && !languageToggle.contains(event.target))
-      closeLanguage();
+    for (const select of selects) {
+      if (!select.list.contains(event.target) && !select.toggle.contains(event.target))
+        closeSelect(select);
+    }
   };
   const onInfoEscape = (event: KeyboardEvent) => {
     if (event.key === 'Escape' && dismissHelp()) {
@@ -295,9 +340,11 @@ export async function mountPopup(root: Document): Promise<() => void> {
   root.addEventListener('mouseout', onHelpOut);
   form.addEventListener('submit', preventSubmit);
   form.addEventListener('change', onChange);
-  form.addEventListener('keydown', onLanguageKey);
-  languageToggle.addEventListener('click', onLanguageToggle);
-  languageList.addEventListener('click', onLanguageChoose);
+  form.addEventListener('keydown', onSelectKey);
+  for (const select of selects) {
+    select.toggle.addEventListener('click', onSelectToggle);
+    select.list.addEventListener('click', onSelectChoose);
+  }
   root.addEventListener('click', onOutsideClick);
   root.addEventListener('focusin', onOverlayFocus);
   main.addEventListener('animationend', onEntryEnd);
@@ -323,9 +370,11 @@ export async function mountPopup(root: Document): Promise<() => void> {
     unsubscribe();
     form.removeEventListener('submit', preventSubmit);
     form.removeEventListener('change', onChange);
-    form.removeEventListener('keydown', onLanguageKey);
-    languageToggle.removeEventListener('click', onLanguageToggle);
-    languageList.removeEventListener('click', onLanguageChoose);
+    form.removeEventListener('keydown', onSelectKey);
+    for (const select of selects) {
+      select.toggle.removeEventListener('click', onSelectToggle);
+      select.list.removeEventListener('click', onSelectChoose);
+    }
     root.removeEventListener('click', onOutsideClick);
     root.removeEventListener('focusin', onOverlayFocus);
     main.removeEventListener('animationend', onEntryEnd);

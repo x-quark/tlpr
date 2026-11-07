@@ -47,8 +47,11 @@ describe('independent lifecycle regression review', () => {
       [...document.querySelectorAll('.tlpr-merge-candidate-text')].map(
         (option) => option.textContent,
       ),
-    ).toEqual(['Comment 1', 'Comment 2']);
-    expect(document.querySelector('.tlpr-merge-candidate-radio:checked')).toBeNull();
+    ).toEqual(['Comment 1', 'Comment 2 · latest']);
+    // The most recent proposal is preselected; the earlier one stays one click away.
+    expect(
+      document.querySelector<HTMLInputElement>('.tlpr-merge-candidate-radio:checked')?.value,
+    ).toContain('Example 2');
   });
 
   it('removes an open merge helper when navigating to an issue', () => {

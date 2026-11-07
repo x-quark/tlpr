@@ -3,15 +3,24 @@ import { mountMergeFormControls, type MergeFormLabels } from '../../src/content/
 
 const labels: MergeFormLabels = {
   mergeInsert: 'Insert',
+  mergeReplace: 'Replace',
   mergeInserted: 'Inserted',
+  mergeUndo: 'Undo',
+  mergeUndone: 'Undone',
   mergeEdited: 'Edited',
   mergeFormUnavailable: 'Unavailable',
   mergeChooseSource: 'Choose',
   mergePreview: 'Preview',
   mergeDetectedNotice: 'Notice',
+  mergeCandidateLabel: 'Proposal',
   mergeCandidateOption: 'Candidate {count}',
+  mergeCandidateLatest: 'latest',
+  mergeSubjectLabel: 'Commit message',
+  mergeDescriptionLabel: 'Extended description',
+  mergeKeepsTitle: 'Kept',
   mergeMissingTitle: 'Missing',
   mergeNoCandidates: 'None',
+  mergeViewSource: 'Source',
 };
 
 function candidate(): string {

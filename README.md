@@ -13,17 +13,19 @@ Long GitHub reviews become difficult to scan when replies, automated events, and
 ## Features
 
 - Automatically collapses human comments taller than `140px`
-- Keeps the first two and last three items visible in long timelines
+- Keeps the first two and last three items of a long timeline visible, in chronological order even when GitHub lists the newest comments first
+- Supports GitHub's classic conversation, the new pull request Overview page, and the React issue viewer, detected automatically
+- Links an Overview pull request to its classic view in one click
 - Reveals the folded middle on demand
 - Keeps concise global expand/collapse controls within reach while scrolling
 - Shows folded/expanded state with accents, chevrons, and accessible labels
-- Offers compact toolbar settings for enablement, language, animations, and state colors
-- Shows contextual help on setting titles (hover or keyboard focus); keeps privacy and version in Info
-- Includes an optional, off-by-default merge-text preview and insertion helper
+- Offers compact toolbar settings for enablement, language, GitHub view, animations, and state colors, in light and dark themes
+- Shows contextual help on setting titles on hover; keeps privacy and version in Info
+- Includes an optional, off-by-default merge message helper that fills GitHub's merge form from the proposal posted in the conversation
 - Keeps keyboard focus on timeline controls and reveals focused comment content
 - Temporarily reveals linked comments without overwriting saved folding preferences
-- Persists per-page state under the existing `gh-pr-comment-collapse:v3` key
-- Ignores bot comments and comments being edited
+- Persists per-page state under the existing `gh-pr-comment-collapse:v3` key, shared by every GitHub view
+- Ignores bot comments, including GitHub Apps shown with a “Bot” label, and comments being edited
 - Runs on GitHub pull requests and issues
 - Includes English and French interfaces
 - Follows the browser language by default, falling back to English for unsupported languages; manual choices are preserved
@@ -38,7 +40,7 @@ The extension requests only the `storage` permission to remember toolbar setting
 - `https://github.com/<owner>/<repo>/pull/<positive-number>/files`
 - `https://github.com/<owner>/<repo>/issues/<positive-number>`
 
-Per-page folding preferences remain in GitHub site storage to preserve compatibility with the original userscript. Enablement, language, animation, state-color, and optional helper settings stay in `chrome.storage.local`. Read the [privacy policy](./PRIVACY.md) for the complete contract
+Per-page folding preferences remain in GitHub site storage to preserve compatibility with the original userscript. Enablement, language, GitHub view, animation, state-color, and optional helper settings stay in `chrome.storage.local`. Read the [privacy policy](./PRIVACY.md) for the complete contract
 
 ## Install locally
 
@@ -75,23 +77,24 @@ pnpm validate:package
 
 The commands produce:
 
-- `release/tlpr-v0.2.3.zip`
-- `release/tlpr-v0.2.3.zip.sha256`
+- `release/tlpr-v0.3.0.zip`
+- `release/tlpr-v0.3.0.zip.sha256`
 
 The ZIP contains `manifest.json`, the GPL license, and a `SOURCE.md` notice at its root. The complete corresponding source is bundled under `source/`, including build scripts and the dependency lockfile. No published Git tag is required to obtain these source files
 
 ## Development
 
-| Command          | Purpose                                                   |
-| ---------------- | --------------------------------------------------------- |
-| `pnpm assets`    | Generate PNG icons and store visuals from the SVG sources |
-| `pnpm format`    | Format tracked source files                               |
-| `pnpm lint`      | Analyze the code with ESLint                              |
-| `pnpm typecheck` | Run strict TypeScript checking                            |
-| `pnpm test`      | Run Vitest tests in JSDOM                                 |
-| `pnpm build`     | Build the unpacked extension into `dist/`                 |
-| `pnpm package`   | Build the ZIP and checksum into `release/`                |
-| `pnpm check`     | Run every quality gate and validate the final package     |
+| Command              | Purpose                                                   |
+| -------------------- | --------------------------------------------------------- |
+| `pnpm assets`        | Generate PNG icons and store visuals from the SVG sources |
+| `pnpm format`        | Format tracked source files                               |
+| `pnpm lint`          | Analyze the code with ESLint                              |
+| `pnpm typecheck`     | Run strict TypeScript checking                            |
+| `pnpm test`          | Run Vitest tests in JSDOM                                 |
+| `pnpm test:coverage` | Run the tests with V8 coverage and regression thresholds  |
+| `pnpm build`         | Build the unpacked extension into `dist/`                 |
+| `pnpm package`       | Build the ZIP and checksum into `release/`                |
+| `pnpm check`         | Run every quality gate and validate the final package     |
 
 ## Project structure
 
@@ -109,7 +112,9 @@ tests/                   Functional parity tests
 
 ## Current scope
 
-TL;PR preserves the userscript's folding defaults and storage format while refining its reading controls. The toolbar popup applies settings to open conversations without a reload. It has no device sync or GitHub Enterprise support. Automated fixtures cover representative legacy, React, and review-comment structures together with DOM replacement, edit mode, cross-page SPA navigation, keyboard focus, embedded controls, text selection, and comment permalinks. The optional merge helper reads a rendered “🧾 Merge commit body” heading and one code block, previews the PR title plus the block text, and copies only after an explicit click. When GitHub’s merge confirmation form is open, **Insert** fills the extended description with the PR title, a blank line, and that code block. The default merge commit title is untouched. Custom descriptions are preserved; multiple source comments require a choice and another explicit Insert click. The helper cannot verify a hidden Markdown marker from rendered HTML, never fetches private API data, and never submits the form or merges a pull request. A GitHub redesign outside these fixtures may require an update
+TL;PR preserves the userscript's folding defaults and storage format while refining its reading controls. The toolbar popup applies settings to open conversations without a reload. It has no device sync or GitHub Enterprise support. Automated fixtures cover representative classic, React issue, pull request Overview, and review-comment structures together with DOM replacement, edit mode, cross-page SPA navigation, keyboard focus, embedded controls, text selection, and comment permalinks. The Overview page, in GitHub public preview since 2026-11-05, needs an opted-in account: its fixture is reconstructed from GitHub's public page bundle, while the classic and React structures were also probed on live public pages. See [ADR 006](./journal/decisions/006-github-overview-and-merge-proposals.md)
+
+The optional merge helper reads proposals rendered in the conversation: a “🧾 Proposed merge commit” or “🧾 Merge commit body” section with one code block, or a comment made of a single ` ```git ` block. When GitHub’s merge confirmation form is open, inline or in the Overview dialog, **Insert proposed message** fills **Commit message** with the subject and **Extended description** with the body of a complete message. A body-only template keeps GitHub's title and goes under the PR title. The latest proposal is preselected and every proposal stays selectable with a preview. Text you typed is replaced only after a second confirmation, and **Undo** restores both fields. The helper cannot verify a hidden Markdown marker from rendered HTML, never fetches private API data, and never submits the form or merges a pull request. A GitHub redesign outside these fixtures may require an update
 
 ## License
 

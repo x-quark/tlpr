@@ -27,6 +27,7 @@ export class ReadingRuntime {
     root.dataset.tlprStateColors = settings.stateColors ? 'on' : 'off';
     this.controller = new GitHubCommentCollapser(this.pageDocument, this.pageWindow, {
       mergeHelper: settings.mergeHelper,
+      layout: settings.layout,
       onOutOfScope: () => {
         this.destroy();
         this.onOutOfScope?.();

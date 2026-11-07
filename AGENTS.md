@@ -8,9 +8,10 @@ TL;PR est une extension Chrome Manifest V3 qui améliore la lecture des longues 
 
 - Exception ciblée autorisée le 21 octobre 2026 (ADR 005) : charger un bootstrap sur `https://github.com/*`, limité hors conversations à la lecture de l’URL et à l’écoute de navigation ; aucune lecture du contenu, modification DOM, collecte ou transmission hors PR/issues numériques
 - Activer les contrôles, styles, observateurs et stockage de conversation uniquement sur les routes numériques de PR/issues prises en charge ; aucun autre site ni permission API nommée supplémentaire
+- Prendre en charge la conversation classique, la page Overview des pull requests (préversion GitHub du 5 novembre 2026) et la vue React des issues, sans jamais modifier la préférence de compte GitHub (ADR 006)
 - Replier par défaut les commentaires humains dont la hauteur dépasse `140px`
-- Conserver les deux premiers et les trois derniers éléments d’une longue chronologie
-- Ne jamais modifier les commentaires de bots ou les commentaires en cours d’édition
+- Conserver les deux premiers et les trois derniers éléments d’une longue chronologie, dans l’ordre chronologique même quand GitHub affiche les plus récents en premier
+- Ne jamais modifier les commentaires de bots (applications GitHub, libellé « Bot » ou suffixe `[bot]`) ou les commentaires en cours d’édition
 - Conserver la clé de stockage `gh-pr-comment-collapse:v3` pour la compatibilité avec le userscript
 - Ne collecter, transmettre ou analyser aucune donnée
 - Ne pas ajouter de permission Chrome nommée sans ADR et justification produit explicite

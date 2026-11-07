@@ -38,6 +38,18 @@ describe('live reading settings', () => {
     expect(document.documentElement.dataset.tlprAnimations).toBe('on');
   });
 
+  it('passes a pinned GitHub view to the conversation controller', () => {
+    window.history.replaceState({}, '', '/x-quark/tlpr/pull/1');
+    document.body.innerHTML = `<main><section><h2 id="overview-comments">Comments</h2><article id="issuecomment-1"><div data-testid="comment-header"></div><div class="markdown-body">Text</div></article></section></main>`;
+    runtime = new ReadingRuntime(document, window);
+    runtime.apply(DEFAULT_SETTINGS);
+    expect(document.documentElement.dataset.tlprLayout).toBe('overview');
+    runtime.apply({ ...DEFAULT_SETTINGS, layout: 'classic' });
+    expect(document.documentElement.dataset.tlprLayout).toBe('generic');
+    runtime.apply({ ...DEFAULT_SETTINGS, enabled: false });
+    expect(document.documentElement.hasAttribute('data-tlpr-layout')).toBe(false);
+  });
+
   it('keeps the merge helper off by default and off on issues', () => {
     mount();
     runtime!.apply(DEFAULT_SETTINGS);

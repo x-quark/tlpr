@@ -202,13 +202,13 @@
 }
 
 /* State is conveyed by both the chevron direction and an optional accent. */
-.tlpr-btn[aria-expanded='false'] {
+:is(.tlpr-comment-toggle, .tlpr-timeline-toggle)[aria-expanded='false'] {
   color: var(--tlpr-fold-accent) !important;
   border-color: color-mix(in srgb, var(--tlpr-fold-accent) 26%, transparent) !important;
   background: color-mix(in srgb, var(--tlpr-fold-accent) 6%, transparent) !important;
 }
 
-.tlpr-btn[aria-expanded='true'] {
+:is(.tlpr-comment-toggle, .tlpr-timeline-toggle)[aria-expanded='true'] {
   color: var(--tlpr-open-accent) !important;
   border-color: color-mix(in srgb, var(--tlpr-open-accent) 26%, transparent) !important;
   background: color-mix(in srgb, var(--tlpr-open-accent) 5%, transparent) !important;
@@ -309,7 +309,7 @@
   }
 }
 
-[data-tlpr-state-colors='off'] .tlpr-btn[aria-expanded] {
+[data-tlpr-state-colors='off'] :is(.tlpr-comment-toggle, .tlpr-timeline-toggle)[aria-expanded] {
   color: var(--fgColor-default, #1f2328) !important;
   border-color: var(--borderColor-default, #d0d7de) !important;
   background: var(--bgColor-muted, #f6f8fa) !important;
@@ -358,12 +358,11 @@
   }
 
   .tlpr-timeline-summary,
-  .tlpr-btn[aria-expanded] {
+  :is(.tlpr-comment-toggle, .tlpr-timeline-toggle)[aria-expanded] {
     border-color: CanvasText !important;
   }
 }
 
-.tlpr-merge-open,
 .tlpr-merge-copy,
 .tlpr-merge-close {
   min-height: 36px;
@@ -378,11 +377,6 @@
     'Segoe UI',
     sans-serif;
   cursor: pointer;
-}
-
-.tlpr-merge-open {
-  background: transparent;
-  border-color: transparent;
 }
 
 .tlpr-merge-overlay {
@@ -641,26 +635,78 @@ legend.tlpr-merge-candidate-label {
   }
 }
 
+/* Inline merge-message panel, placed above GitHub's commit message field. */
 .tlpr-merge-form-controls {
+  --tlpr-merge-accent: var(--fgColor-done, #8250df);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  margin-block: 0 12px;
+  padding: 8px 10px;
+  border: 1px solid
+    color-mix(in srgb, var(--tlpr-merge-accent) 28%, var(--borderColor-default, #d0d7de));
+  border-inline-start: 3px solid var(--tlpr-merge-accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tlpr-merge-accent) 5%, var(--bgColor-default, #ffffff));
+  color: var(--fgColor-default, #1f2328);
+  font-size: 12px;
+}
+
+.tlpr-merge-form-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
-  margin-block: 8px;
-  font-size: 12px;
+  gap: 6px 10px;
+}
+
+.tlpr-merge-insert {
+  border-color: color-mix(in srgb, var(--tlpr-merge-accent) 40%, transparent) !important;
+  background: var(--bgColor-default, #ffffff) !important;
+  color: var(--tlpr-merge-accent) !important;
+}
+
+.tlpr-merge-insert:hover {
+  background: color-mix(
+    in srgb,
+    var(--tlpr-merge-accent) 10%,
+    var(--bgColor-default, #ffffff)
+  ) !important;
+}
+
+.tlpr-merge-insert[data-state='confirm'] {
+  border-color: var(--borderColor-attention-emphasis, #9a6700) !important;
+  color: var(--fgColor-attention, #9a6700) !important;
+}
+
+.tlpr-merge-undo[hidden] {
+  display: none !important;
 }
 
 .tlpr-merge-form-status {
   color: var(--fgColor-muted, #59636e);
+  overflow-wrap: anywhere;
+}
+
+.tlpr-merge-form-status[data-state='success'] {
+  color: var(--fgColor-success, #1a7f37);
+}
+
+.tlpr-merge-form-status[data-state='warning'] {
+  color: var(--fgColor-attention, #9a6700);
+}
+
+.tlpr-merge-form-status[data-state='error'] {
+  color: var(--fgColor-danger, #d1242f);
 }
 
 .tlpr-merge-form-preview summary {
+  width: fit-content;
   color: var(--fgColor-accent, #0969da);
   cursor: pointer;
 }
 
 .tlpr-merge-form-preview[open] {
-  flex-basis: 100%;
   min-width: 0;
 }
 
@@ -669,12 +715,48 @@ legend.tlpr-merge-candidate-label {
   color: var(--fgColor-muted, #59636e);
 }
 
+.tlpr-merge-form-fields {
+  margin: 8px 0 0;
+}
+
+.tlpr-merge-form-fields dt {
+  margin-top: 8px;
+  color: var(--fgColor-muted, #59636e);
+  font-weight: 600;
+}
+
+.tlpr-merge-form-fields dd {
+  margin: 4px 0 0;
+}
+
+.tlpr-merge-form-subject {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.tlpr-merge-form-subject[data-kept='true'] {
+  color: var(--fgColor-muted, #59636e);
+  font-weight: 400;
+  font-style: italic;
+}
+
+.tlpr-merge-source-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--fgColor-accent, #0969da);
+}
+
+.tlpr-merge-source-link[hidden] {
+  display: none;
+}
+
 .tlpr-merge-candidates:empty {
   display: none;
 }
 
 .tlpr-merge-form-text {
   max-height: 260px;
+  margin: 0;
   overflow: auto;
   padding: 12px;
   border: 1px solid var(--borderColor-default, #d0d7de);
@@ -687,6 +769,49 @@ legend.tlpr-merge-candidate-label {
     SFMono-Regular,
     Consolas,
     monospace;
+}
+
+/* Description toolbar for the Overview description and React issue bodies. */
+.tlpr-comment-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 4px;
+}
+
+.tlpr-comment-bar .tlpr-control {
+  padding-inline: 0;
+}
+
+:is([data-testid='comment-header-right-side-items'], [class*='actionsSection']) > .tlpr-control {
+  margin-inline-start: 0;
+  padding-inline: 0 4px;
+}
+
+a.tlpr-btn {
+  text-decoration: none !important;
+}
+
+.tlpr-global-rail .tlpr-view-switch svg,
+.tlpr-global-rail .tlpr-merge-open svg {
+  color: var(--fgColor-muted, #59636e);
+}
+
+/* GitHub's React headers stick to the top of the viewport; keep the rail below them. */
+:is([data-tlpr-layout='overview'], [data-tlpr-layout='react']) .tlpr-global-rail {
+  top: 64px;
+}
+
+@media (min-width: 1680px) {
+  /* The Overview keeps a status sidebar on the right: the rail stays inline. */
+  [data-tlpr-layout='overview'] .tlpr-global-rail {
+    position: sticky;
+    top: 64px;
+    inset-inline-end: auto;
+    flex-direction: row;
+    align-items: center;
+    max-width: 100%;
+    transform: none;
+  }
 }
 
 /* Focus remains functional, never a visual state. Content rules only target TLPR UI. */

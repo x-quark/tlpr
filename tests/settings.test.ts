@@ -44,11 +44,25 @@ describe('local extension settings', () => {
     expect(await readSettings()).toEqual({
       enabled: true,
       language: 'auto',
+      layout: 'auto',
       animations: true,
       stateColors: true,
       mergeHelper: false,
     });
     expect(values).toEqual({});
+  });
+
+  it('reads a pinned GitHub view and rejects unknown views', async () => {
+    for (const layout of ['auto', 'classic', 'overview'] as const) {
+      values[key] = { ...DEFAULT_SETTINGS, layout };
+      expect((await readSettings()).layout).toBe(layout);
+    }
+    for (const layout of ['legacy', null, 3, '']) {
+      values[key] = { ...DEFAULT_SETTINGS, layout };
+      expect((await readSettings()).layout).toBe('auto');
+    }
+    values[key] = { ...DEFAULT_SETTINGS, layout: 'overview' };
+    expect((await saveSettings({ animations: false })).layout).toBe('overview');
   });
 
   it('preserves an explicit English or French choice when reading and saving other settings', async () => {
@@ -72,6 +86,7 @@ describe('local extension settings', () => {
     values[key] = {
       enabled: false,
       language: 'fr',
+      layout: 'classic',
       animations: false,
       stateColors: false,
       mergeHelper: true,
