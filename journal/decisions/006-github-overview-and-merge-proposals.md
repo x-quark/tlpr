@@ -25,7 +25,7 @@ The merge helper therefore never worked in practice. The owner's repositories po
 - Treat `/apps/` author links, bot hovercards, a “Bot” label or a `[bot]` suffix as automated authors and never modify those comments
 - Offer the same pull request in GitHub's other view only from the Overview, or back from `?overview=false`. TL;PR never changes the GitHub account preference
 - Designate a merge proposal with a visible heading containing 🧾, “merge commit” or “commit message” and the single code block of its section, or with a comment made only of one git-language block
-- Fill **Commit message** and **Extended description** from a complete message. Keep the title for a body-only template and place it under the pull request title, as GitHub's default description does
+- Fill **Commit message** and **Extended description** from a complete message. For a body-only template, use the pull request title without its leading emoji followed by `(#number)` as the subject and the template as the body: the owner's recent merges of such pull requests use exactly this form instead of GitHub's `Merge pull request #N from …` default
 - Preselect the latest proposal and keep every proposal visible and switchable. Never substitute another proposal when an explicit choice changes
 - Accept only a visible description/title pair whose title names the current pull request, was written by TL;PR, or sits next to a “Confirm … merge” button. Refuse titles naming another pull request and suggestion commit dialogs
 - Require a second explicit click before replacing text the user typed, and offer **Undo**. Nothing is submitted, merged, fetched or stored

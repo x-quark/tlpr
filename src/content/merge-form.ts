@@ -3,6 +3,7 @@ import {
   composeMergeMessage,
   isVisible,
   proposalKey,
+  pullRequestNumber,
   readProposals,
   readTitle,
   type MergeMessage,
@@ -25,7 +26,6 @@ export interface MergeFormLabels {
   mergeCandidateLatest: string;
   mergeSubjectLabel: string;
   mergeDescriptionLabel: string;
-  mergeKeepsTitle: string;
   mergeMissingTitle: string;
   mergeNoCandidates: string;
   mergeViewSource: string;
@@ -104,10 +104,6 @@ function hasConfirmMerge(from: Element): boolean {
   return false;
 }
 
-function pullNumber(pageWindow: Window): string | null {
-  return pageWindow.location.pathname.match(/\/pull\/(\d+)(?:\/|$)/)?.[1] ?? null;
-}
-
 /**
  * GitHub's default titles mention the pull request (“Merge pull request #12 from…”,
  * “Title (#12)”). A title naming another number belongs to a stale form. Suggestion
@@ -118,7 +114,7 @@ function belongsToPullRequest(
   field: HTMLTextAreaElement,
   pageWindow: Window,
 ): boolean {
-  const number = pullNumber(pageWindow);
+  const number = pullRequestNumber(pageWindow.location);
   if (!number) return false;
   if (insertedTitles.get(title) === title.value) return true;
   const mentions = [...title.value.matchAll(/#(\d+)\b/g)].map((match) => match[1]);
@@ -268,8 +264,7 @@ export function mountMergeFormControls(
       proposals.find((proposal) => proposalKey(proposal) === selected) ?? proposals.at(-1);
 
     const render = (message: MergeMessage | null, proposal: MergeProposal | undefined): void => {
-      subject.textContent = message?.title ?? (message ? labels.mergeKeepsTitle : '');
-      subject.dataset.kept = String(Boolean(message && !message.title));
+      subject.textContent = message?.title ?? '';
       preview.textContent = message?.description ?? '';
       source.hidden = !proposal?.sourceId;
       if (proposal?.sourceId) source.href = `#${proposal.sourceId}`;
@@ -302,7 +297,13 @@ export function mountMergeFormControls(
               disarm();
               const chosen = current();
               render(
-                chosen ? composeMergeMessage(chosen, readTitle(pageDocument, pageWindow)) : null,
+                chosen
+                  ? composeMergeMessage(
+                      chosen,
+                      readTitle(pageDocument, pageWindow),
+                      pullRequestNumber(pageWindow.location),
+                    )
+                  : null,
                 chosen,
               );
             });
@@ -312,7 +313,9 @@ export function mountMergeFormControls(
         }
       }
       const proposal = current();
-      const message = proposal ? composeMergeMessage(proposal, title) : null;
+      const message = proposal
+        ? composeMergeMessage(proposal, title, pullRequestNumber(pageWindow.location))
+        : null;
       render(message, proposal);
       if (!proposal) return { message: null, error: labels.mergeNoCandidates };
       if (!message) return { message: null, error: labels.mergeMissingTitle };
@@ -345,10 +348,10 @@ export function mountMergeFormControls(
       titleFieldFor(field) === commitTitle &&
       belongsToPullRequest(commitTitle, field, pageWindow);
 
-    const write = (title: string | null, description: string): boolean => {
+    const write = (title: string, description: string): boolean => {
       applying = true;
       try {
-        if (title !== null && commitTitle.value !== title) {
+        if (commitTitle.value !== title) {
           if (!setNativeValue(commitTitle, title)) return false;
           insertedTitles.set(commitTitle, title);
         }
@@ -371,7 +374,7 @@ export function mountMergeFormControls(
         details.open = true;
         return;
       }
-      const titleChanges = message.title !== null && commitTitle.value !== message.title;
+      const titleChanges = commitTitle.value !== message.title;
       const descriptionChanges = field.value !== message.description;
       if (!titleChanges && !descriptionChanges) {
         disarm();
@@ -445,7 +448,7 @@ export function mountMergeFormControls(
         mounted.delete(field);
       }
     }
-    if (!pullNumber(pageWindow)) return;
+    if (!pullRequestNumber(pageWindow.location)) return;
     for (const field of pageDocument.querySelectorAll<HTMLTextAreaElement>('textarea')) {
       if (mounted.has(field) || field.closest('.tlpr-merge-dialog, .tlpr-merge-form-controls'))
         continue;

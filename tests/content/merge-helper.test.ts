@@ -15,7 +15,6 @@ const labels: MergeHelperLabels = {
   mergeCandidateLatest: 'latest',
   mergeSubjectLabel: 'Commit message',
   mergeDescriptionLabel: 'Extended description',
-  mergeKeepsTitle: 'Unchanged (GitHub default)',
   mergeViewSource: 'View source comment',
 
   mergeOpen: 'Preview merge text',
@@ -507,20 +506,21 @@ describe('explicit merge form insertion', () => {
   function insert() {
     return document.querySelector<HTMLButtonElement>('.tlpr-merge-insert')!;
   }
-  it('inserts only on request and preserves the default commit title without submitting', () => {
+  it('inserts a conventional title and the template body only on request, without submitting', () => {
     const field = form();
     const submit = vi.fn((e: Event) => e.preventDefault());
     field.form!.addEventListener('submit', submit);
     expect(field.value).toBe('Improve example behavior');
     expect(insert()).not.toBeNull();
     insert().click();
-    expect(field.value).toBe('Improve example behavior\n\n- Body');
+    // Body-only templates are merged as “PR title (#number)” followed by the template body.
+    expect(field.value).toBe('- Body');
     expect(document.querySelector<HTMLInputElement>('#merge_title_field')!.value).toBe(
-      'Merge pull request #713 from example/topic',
+      'Improve example behavior (#713)',
     );
     expect(submit).not.toHaveBeenCalled();
     insert().click();
-    expect(field.value).toBe('Improve example behavior\n\n- Body');
+    expect(field.value).toBe('- Body');
   });
   it('asks before replacing manual edits, then offers to restore them', () => {
     const field = form();
@@ -531,7 +531,7 @@ describe('explicit merge form insertion', () => {
     expect(insert().textContent).toBe(labels.mergeReplace);
     expect(document.querySelector('.tlpr-merge-form-status')?.textContent).toBe(labels.mergeEdited);
     insert().click();
-    expect(field.value).toBe('Improve example behavior\n\n- Body');
+    expect(field.value).toBe('- Body');
     expect(insert().textContent).toBe(labels.mergeInsert);
     const undo = document.querySelector<HTMLButtonElement>('.tlpr-merge-undo')!;
     expect(undo.hidden).toBe(false);
@@ -555,7 +555,7 @@ describe('explicit merge form insertion', () => {
     document.querySelector<HTMLInputElement>('#merge_title_field')!.value =
       'Improve example behavior (#713)';
     insert().click();
-    expect(field.value).toBe('Improve example behavior\n\n- Body');
+    expect(field.value).toBe('- Body');
   });
   it('ignores suggestion commit dialogs that are not merge forms', () => {
     window.history.replaceState({}, '', '/example/project/pull/713');
@@ -586,7 +586,10 @@ describe('React merge confirmation form', () => {
     expect(insert).not.toBeNull();
     insert!.click();
     expect(document.querySelector<HTMLTextAreaElement>('#_r_description_')!.value).toBe(
-      'Improve example behavior\n\nReact body',
+      'React body',
+    );
+    expect(document.querySelector<HTMLInputElement>('#_r_title_')!.value).toBe(
+      'Improve example behavior (#713)',
     );
     expect(confirm).not.toHaveBeenCalled();
   });
@@ -616,16 +619,16 @@ describe('insertion lifecycle guards', () => {
       comment(markedBody('Second body'), '2'),
     ]);
     button.click();
-    expect(field.value).toBe('Improve example behavior\n\nSecond body');
+    expect(field.value).toBe('Second body');
     form.querySelector<HTMLDetailsElement>('.tlpr-merge-form-preview')!.open = true;
     form.querySelector('.tlpr-merge-form-preview')!.dispatchEvent(new Event('toggle'));
     const radios = form.querySelectorAll<HTMLInputElement>('input[type="radio"]');
     expect(radios).toHaveLength(2);
     expect(radios[1]!.checked).toBe(true);
     radios[0]!.click();
-    expect(field.value).toBe('Improve example behavior\n\nSecond body');
+    expect(field.value).toBe('Second body');
     button.click();
-    expect(field.value).toBe('Improve example behavior\n\nFirst body');
+    expect(field.value).toBe('First body');
   });
   it('does not overwrite manual text after insertion or duplicate on rescans', () => {
     const { field, button, handle } = setup();
@@ -636,7 +639,7 @@ describe('insertion lifecycle guards', () => {
     handle.refresh();
     expect(document.querySelectorAll('.tlpr-merge-insert')).toHaveLength(1);
     button.click();
-    expect(field.value).toBe('Improve example behavior\n\nFirst body\nMy manual addition');
+    expect(field.value).toBe('First body\nMy manual addition');
   });
   it('keeps the manual-edit guard when the user returns the field to its default text', () => {
     const { field, button } = setup();
@@ -663,7 +666,7 @@ describe('insertion lifecycle guards', () => {
       if (field.value !== tracked) received = field.value;
     });
     button.click();
-    expect(received).toBe('Improve example behavior\n\nFirst body');
+    expect(received).toBe('First body');
   });
   it('does not reuse a preview selection after its source changes', () => {
     const { field, button, form } = setup([
@@ -744,7 +747,7 @@ describe('insertion lifecycle guards', () => {
     handle.refresh();
     expect(clone.querySelectorAll('.tlpr-merge-insert')).toHaveLength(1);
     clone.querySelector<HTMLButtonElement>('.tlpr-merge-insert')!.click();
-    expect(clone.querySelector('textarea')!.value).toBe('Improve example behavior\n\nFirst body');
+    expect(clone.querySelector('textarea')!.value).toBe('First body');
   });
 });
 

@@ -261,9 +261,6 @@
   "mergeDescriptionLabel": {
     "message": "Extended description"
   },
-  "mergeKeepsTitle": {
-    "message": "Unchanged (GitHub default)"
-  },
   "mergeViewSource": {
     "message": "View source comment"
   }

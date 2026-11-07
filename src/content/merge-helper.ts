@@ -3,6 +3,7 @@ import {
   composeMergeMessage,
   mergeMessageText,
   proposalKey,
+  pullRequestNumber,
   readProposals,
   readTitle,
 } from './merge-source';
@@ -155,7 +156,9 @@ export function mountMergeHelper(
       const selected = selection?.querySelector<HTMLInputElement>('input:checked')?.value;
       const proposal =
         proposals.find((candidate) => proposalKey(candidate) === selected) ?? proposals.at(-1);
-      const message = proposal ? composeMergeMessage(proposal, title) : null;
+      const message = proposal
+        ? composeMergeMessage(proposal, title, pullRequestNumber(pageWindow.location))
+        : null;
       preview.value = message ? mergeMessageText(message) : '';
       copy.disabled = !preview.value;
       status.textContent = !proposal

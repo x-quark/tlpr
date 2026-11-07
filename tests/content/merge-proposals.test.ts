@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { mountMergeHelper, type MergeHelperLabels } from '../../src/content/merge-helper';
 import {
+  commitTitleFromPullRequest,
   composeMergeMessage,
   mergeMessageText,
   readProposals,
@@ -26,7 +27,6 @@ const labels: MergeHelperLabels = {
   mergeCandidateLatest: 'latest',
   mergeSubjectLabel: 'Commit message',
   mergeDescriptionLabel: 'Extended description',
-  mergeKeepsTitle: 'Unchanged',
   mergeMissingTitle: 'Missing title',
   mergeNoCandidates: 'No proposal',
   mergeViewSource: 'View source comment',
@@ -99,16 +99,30 @@ describe('merge proposal formats', () => {
     expect(readProposals(document, window)).toMatchObject([{ subject: SUBJECT, body: BODY }]);
   });
 
-  it('keeps body-only templates under the PR title, as GitHub’s default description does', () => {
+  it('derives a conventional subject from the PR title for body-only templates', () => {
     mountClassic([classicComment(bodyTemplate(), 1)]);
     const [proposal] = readProposals(document, window);
     expect(proposal).toMatchObject({ subject: null, body: BODY });
-    const message = composeMergeMessage(proposal!, readTitle(document, window))!;
+    // Such templates are merged as the PR title without its emoji, then (#number).
+    const message = composeMergeMessage(proposal!, readTitle(document, window), '713')!;
     expect(message).toEqual({
-      title: null,
-      description: `🧩 feat(widgets): render example panels lazily\n\n${BODY}`,
+      title: 'feat(widgets): render example panels lazily (#713)',
+      description: BODY,
     });
-    expect(mergeMessageText(message)).toBe(message.description);
+    expect(mergeMessageText(message)).toBe(`${message.title}\n\n${BODY}`);
+    expect(composeMergeMessage(proposal!, null, '713')).toBeNull();
+  });
+
+  it.each([
+    ['🧩 feat(widgets): render panels', '7', 'feat(widgets): render panels (#7)'],
+    ['🛡️ docs(devops): clarify recovery', '7', 'docs(devops): clarify recovery (#7)'],
+    ['👩‍💻🚀 chore: ship', '7', 'chore: ship (#7)'],
+    [':rocket: feat: launch', '7', 'feat: launch (#7)'],
+    ['2026 roadmap update', '7', '2026 roadmap update (#7)'],
+    ['fix: keep it (#7)', '7', 'fix: keep it (#7)'],
+    ['fix: issue view', null, 'fix: issue view'],
+  ] as const)('turns PR title %j into commit subject %j', (title, number, subject) => {
+    expect(commitTitleFromPullRequest(title, number)).toBe(subject);
   });
 
   it('rejects git blocks surrounded by prose and blocks in other languages', () => {
@@ -204,11 +218,9 @@ describe('merge confirmation form insertion', () => {
     const radios = document.querySelectorAll<HTMLInputElement>('.tlpr-merge-candidate-radio');
     radios[1]!.click();
     insert.click();
-    // A body-only template keeps the current title and restores GitHub's PR-title prefix.
-    expect(title.value).toBe('fix: resolve example crash (#12)');
-    expect(description.value).toBe(
-      '🧩 feat(widgets): render example panels lazily\n\n- Later template',
-    );
+    // A body-only template takes its subject from the PR title and number.
+    expect(title.value).toBe('feat(widgets): render example panels lazily (#713)');
+    expect(description.value).toBe('- Later template');
   });
 
   it('shows what will be inserted and links to the source comment', () => {

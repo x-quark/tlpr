@@ -35,8 +35,9 @@ export interface MergeProposal {
 }
 
 export interface MergeMessage {
-  /** New commit title, or null to keep GitHub's default title. */
-  title: string | null;
+  /** Commit title for GitHub's “Commit message” field. */
+  title: string;
+  /** Commit body for GitHub's “Extended description” field. */
   description: string;
 }
 
@@ -221,19 +222,42 @@ export function readProposals(
   return proposals;
 }
 
-/** Complete proposals set the title; body-only templates keep it and prefix the PR title. */
+/** Decorative leading emoji: pictographs with modifiers or joiners, flags and :shortcodes:. */
+const LEADING_EMOJI =
+  /^(?:(?:\p{Extended_Pictographic}(?:️|\p{Emoji_Modifier})?(?:‍\p{Extended_Pictographic}(?:️|\p{Emoji_Modifier})?)*|\p{Regional_Indicator}{2}|:[a-z0-9_+-]+:)\s*)+/u;
+
+/**
+ * Commit subject for a body-only template, as such pull requests are merged in practice:
+ * the pull request title without its decorative leading emoji, then `(#number)`.
+ */
+export function commitTitleFromPullRequest(title: string, number: string | null): string {
+  const subject = title.replace(LEADING_EMOJI, '').trim() || title.trim();
+  if (!number || subject.includes(`(#${number})`)) return subject;
+  return `${subject} (#${number})`;
+}
+
+/** Complete proposals give the subject; body-only templates derive it from the PR title. */
 export function composeMergeMessage(
   proposal: MergeProposal,
   pullRequestTitle: string | null,
+  pullRequestNumber: string | null = null,
 ): MergeMessage | null {
   if (proposal.subject) return { title: proposal.subject, description: proposal.body };
   if (!pullRequestTitle) return null;
-  return { title: null, description: `${pullRequestTitle}\n\n${proposal.body}` };
+  return {
+    title: commitTitleFromPullRequest(pullRequestTitle, pullRequestNumber),
+    description: proposal.body,
+  };
 }
 
-/** Full text for the clipboard: subject (or PR title), a blank line, then the body. */
+/** Full commit message for the clipboard: subject, a blank line, then the body. */
 export function mergeMessageText(message: MergeMessage): string {
-  return message.title ? `${message.title}\n\n${message.description}` : message.description;
+  return message.description ? `${message.title}\n\n${message.description}` : message.title;
+}
+
+/** Number of the pull request shown at this location, if any. */
+export function pullRequestNumber(location: Pick<Location, 'pathname'>): string | null {
+  return location.pathname.match(/\/pull\/(\d+)(?:\/|$)/)?.[1] ?? null;
 }
 
 export function proposalKey(proposal: MergeProposal): string {
