@@ -787,6 +787,31 @@ legend.tlpr-merge-candidate-label {
   padding-inline: 0 4px;
 }
 
+/*
+ * React headers share a narrow action area with GitHub's edit history and badges.
+ * A chevron-only toggle leaves them room; the label stays available to assistive tech.
+ */
+:is([data-testid='comment-header-right-side-items'], [class*='actionsSection'])
+  > .tlpr-control
+  .tlpr-comment-toggle {
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px 6px !important;
+}
+
+:is([data-testid='comment-header-right-side-items'], [class*='actionsSection'])
+  > .tlpr-control
+  .tlpr-comment-toggle
+  > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 a.tlpr-btn {
   text-decoration: none !important;
 }

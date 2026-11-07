@@ -77,8 +77,8 @@ pnpm validate:package
 
 The commands produce:
 
-- `release/tlpr-v0.3.0.zip`
-- `release/tlpr-v0.3.0.zip.sha256`
+- `release/tlpr-v0.3.1.zip`
+- `release/tlpr-v0.3.1.zip.sha256`
 
 The ZIP contains `manifest.json`, the GPL license, and a `SOURCE.md` notice at its root. The complete corresponding source is bundled under `source/`, including build scripts and the dependency lockfile. No published Git tag is required to obtain these source files
 
@@ -112,7 +112,7 @@ tests/                   Functional parity tests
 
 ## Current scope
 
-TL;PR preserves the userscript's folding defaults and storage format while refining its reading controls. The toolbar popup applies settings to open conversations without a reload. It has no device sync or GitHub Enterprise support. Automated fixtures cover representative classic, React issue, pull request Overview, and review-comment structures together with DOM replacement, edit mode, cross-page SPA navigation, keyboard focus, embedded controls, text selection, and comment permalinks. The Overview page, in GitHub public preview since 2026-11-05, needs an opted-in account: its fixture is reconstructed from GitHub's public page bundle, while the classic and React structures were also probed on live public pages. See [ADR 006](./journal/decisions/006-github-overview-and-merge-proposals.md)
+TL;PR preserves the userscript's folding defaults and storage format while refining its reading controls. The toolbar popup applies settings to open conversations without a reload. It has no device sync or GitHub Enterprise support. Automated fixtures cover representative classic, React issue, pull request Overview, and review-comment structures together with DOM replacement, edit mode, cross-page SPA navigation, keyboard focus, embedded controls, text selection, and comment permalinks. The Overview page, in GitHub public preview since 2026-11-05, needs an opted-in account: its fixture is reconstructed from GitHub's public page bundle, and the controller was also run on a live Overview pull request. The classic and React structures were probed on live public pages. See [ADR 006](./journal/decisions/006-github-overview-and-merge-proposals.md)
 
 The optional merge helper reads proposals rendered in the conversation: a “🧾 Proposed merge commit” or “🧾 Merge commit body” section with one code block, or a comment made of a single ` ```git ` block. When GitHub’s merge confirmation form is open, inline or in the Overview dialog, **Insert proposed message** fills **Commit message** with the subject and **Extended description** with the body of a complete message. A body-only template keeps GitHub's title and goes under the PR title. The latest proposal is preselected and every proposal stays selectable with a preview. Text you typed is replaced only after a second confirmation, and **Undo** restores both fields. The helper cannot verify a hidden Markdown marker from rendered HTML, never fetches private API data, and never submits the form or merges a pull request. A GitHub redesign outside these fixtures may require an update
 
