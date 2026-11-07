@@ -15,6 +15,7 @@
     "build": "node scripts/build.mjs",
     "package": "pnpm build && node scripts/package.mjs",
     "validate:package": "node scripts/validate-package.mjs",
+    "webstore": "node tools/chrome-web-store.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",

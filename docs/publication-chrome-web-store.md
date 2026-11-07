@@ -114,7 +114,7 @@ Le compte éditeur doit être enregistré et utiliser un compte Google protégé
 2. Vérifier le checksum du ZIP et les sources incluses, identiques aux entrées de construction
 3. Ne déclencher aucune GitHub Action : pas de push sur `main`, de PR ni de tag tant qu’un chemin de publication sans CI n’est pas validé
 4. Vérifier les permissions, les interactions réelles et la politique de confidentialité publique à jour
-5. Ouvrir l’élément existant `ejclfjeilcfnjdocgnmloilcaocelgnp`, onglet Package, puis charger `release/tlpr-v0.3.2.zip` avec « Importer un nouveau package » ; ne pas créer un nouvel élément
+5. Exécuter `pnpm webstore publish --dry-run`, puis `pnpm webstore publish` (voir [Publication par l’API](#publication-par-lapi)). À défaut, ouvrir l’élément existant `ejclfjeilcfnjdocgnmloilcaocelgnp`, onglet Package, puis charger `release/tlpr-v0.3.2.zip` avec « Importer un nouveau package » ; ne jamais créer un nouvel élément
 6. Ajouter les textes anglais et français
 7. Ajouter l’icône, la petite vignette, la bannière et la capture réelle
 8. Déclarer l’accès à `github.com` avec la justification ci-dessus
@@ -122,7 +122,48 @@ Le compte éditeur doit être enregistré et utiliser un compte Google protégé
 10. Certifier les déclarations d’usage limité demandées par Chrome
 11. Fournir l’URL publique de la politique de confidentialité
 12. Copier les instructions de test ci-dessus sans fournir d’identifiants
-13. Soumettre la version pour examen
+13. Soumettre la version pour examen ; `pnpm webstore publish` le fait directement
+
+Les étapes 6 à 12 ne concernent que le tableau de bord : elles ne sont à refaire que si la fiche, les visuels, les permissions ou les déclarations changent
+
+## Publication par l’API
+
+La commande `pnpm webstore` utilise l’[API Chrome Web Store v2](https://developer.chrome.com/docs/webstore/using-api) avec le compte éditeur. Elle se trouve dans `tools/`, hors du paquet de l’extension et de ses sources embarquées, et ne passe par aucune GitHub Action
+
+### Configuration unique
+
+1. Dans Google Cloud, avec le compte éditeur, créer un projet sans facturation et activer **Chrome Web Store API**
+2. Dans Google Auth Platform, configurer une application **Externe** avec la page d’accueil `https://github.com/x-quark/tlpr`, la politique `https://github.com/x-quark/tlpr/blob/main/PRIVACY.md` et le domaine autorisé `github.com`, puis la passer **En production** pour que l’autorisation n’expire pas au bout de 7 jours
+3. Créer un client OAuth de type **Application de bureau** et copier son identifiant et son code secret dans le fichier d’identifiants
+4. Exécuter `pnpm webstore login`, ouvrir l’adresse affichée, choisir le compte éditeur et autoriser l’accès. L’écran « Google n’a pas validé cette application » est attendu pour cet outil personnel
+5. Copier l’ID éditeur affiché dans **Publisher > Settings** du tableau de bord développeur dans `publisherId`
+
+Le fichier d’identifiants est `%APPDATA%\x-quark\chrome-web-store.json` sous Windows et `~/.config/x-quark/chrome-web-store.json` ailleurs, ou le chemin donné par `CWS_CREDENTIALS_FILE`. Les variables `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN` et `CWS_PUBLISHER_ID` le remplacent champ par champ
+
+```json
+{
+  "clientId": "…apps.googleusercontent.com",
+  "clientSecret": "…",
+  "refreshToken": "écrit par pnpm webstore login",
+  "publisherId": "…"
+}
+```
+
+Ce fichier ne doit jamais être versionné ni affiché. L’accès se révoque depuis le compte Google, rubrique Sécurité, ou en supprimant le client OAuth. Une autorisation inutilisée pendant 6 mois expire : relancer `pnpm webstore login`
+
+### Commandes
+
+| Commande                          | Effet                                                                       |
+| --------------------------------- | --------------------------------------------------------------------------- |
+| `pnpm webstore status`            | Affiche les versions publiée et soumise                                     |
+| `pnpm webstore publish --dry-run` | Vérifie identifiants, ZIP, checksum et état du store sans rien modifier     |
+| `pnpm webstore publish`           | Envoie `release/tlpr-v<version>.zip` puis le soumet à l’examen              |
+| `pnpm webstore cancel`            | Annule la soumission en attente d’examen                                    |
+| `pnpm webstore submit --staged`   | Soumet le brouillon en gardant la version approuvée en attente de diffusion |
+
+La commande refuse un ZIP sans `manifest.json` à la racine, un checksum différent du fichier `.sha256`, une version qui n’est pas supérieure à celles connues du store et une soumission déjà en attente d’examen
+
+L’API ne modifie ni la fiche, ni les visuels, ni l’onglet Confidentialité : ces changements se font dans le tableau de bord, depuis un navigateur complet
 
 ## Vérification manuelle avant soumission
 

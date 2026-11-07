@@ -29,6 +29,8 @@ pnpm package
 pnpm check
 ```
 
+Publier une version validée avec `pnpm webstore publish`, en suivant le skill `.claude/skills/publish-chrome-web-store` et `docs/publication-chrome-web-store.md`. Les identifiants du Chrome Web Store restent hors du dépôt et ne sont jamais affichés
+
 ## Conventions
 
 - Code, commentaires de code et commits en anglais
@@ -38,6 +40,7 @@ pnpm check
 - Sources graphiques dans `assets/*.svg`
 - Fichiers PNG générés par `pnpm assets`, jamais retouchés manuellement
 - `dist/` et `release/` sont générés et ne doivent pas être versionnés
+- Outils de publication dans `tools/`, hors du paquet de l’extension et de ses sources embarquées
 - `README.md` anglais canonique et `README.fr.md` français avec structure strictement alignée
 - Actions GitHub épinglées par SHA complet avec la version vérifiée en commentaire
 
