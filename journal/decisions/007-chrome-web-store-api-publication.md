@@ -34,7 +34,7 @@ Google expires refresh tokens of external testing apps after 7 days, which would
 
 ## Validation
 
-`tools/chrome-web-store.test.mjs` covers version ordering, checksum verification, credential loading without echoing secrets, the upload, wait and submit sequence, error messages and command guards. TL;PR 0.3.2 was uploaded and submitted for review on 2026-11-07 with these OAuth credentials. Because the publisher ID was not yet available, that submission used the v1.1 endpoints, which need no publisher ID.
+`tools/chrome-web-store.test.mjs` covers version ordering, checksum verification, credential loading without echoing secrets, the upload, wait and submit sequence, error messages and command guards. TL;PR 0.3.2 was uploaded and submitted for review on 2026-11-07 with these OAuth credentials. Because the publisher ID was not yet available, that submission used the v1.1 endpoints, which need no publisher ID. The version was published the same day, and once the publisher ID was configured, `pnpm webstore status` confirmed it through v2.
 
 ## Rollback
 

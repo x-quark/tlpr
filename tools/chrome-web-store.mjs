@@ -12,8 +12,6 @@ import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
-import { unzipSync } from 'fflate';
-
 export const ITEM_ID = 'ejclfjeilcfnjdocgnmloilcaocelgnp';
 export const SCOPE = 'https://www.googleapis.com/auth/chromewebstore';
 const API_ROOT = 'https://chromewebstore.googleapis.com';
@@ -153,6 +151,10 @@ export async function readPackage(zipPath) {
       throw new StoreError(`${zipPath} not found. Run "pnpm check" first.`);
     throw error;
   }
+  // Only reading a package needs a dependency, so status, login, submit and cancel run without one.
+  const { unzipSync } = await import('fflate').catch(() => {
+    throw new StoreError('Dependencies are missing. Run "pnpm install --frozen-lockfile" first.');
+  });
   const entries = unzipSync(new Uint8Array(bytes), {
     filter: (file) => file.name === 'manifest.json',
   });
