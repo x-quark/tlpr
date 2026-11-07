@@ -10,7 +10,7 @@ export default defineConfig({
     },
     globals: true,
     setupFiles: ['./tests/setup.ts'],
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'tools/**/*.test.mjs'],
     // Lifecycle tests wait on real animation frames; coverage instrumentation slows them down.
     testTimeout: 15_000,
     coverage: {

@@ -95,6 +95,7 @@ Le ZIP contient directement `manifest.json`, la licence GPL et une notice `SOURC
 | `pnpm build`         | Construit l’extension non empaquetée dans `dist/`                       |
 | `pnpm package`       | Construit le ZIP et son checksum dans `release/`                        |
 | `pnpm check`         | Exécute tous les contrôles et valide le paquet final                    |
+| `pnpm webstore`      | Vérifie, envoie ou soumet une version sur le Chrome Web Store           |
 
 ## Structure du projet
 
@@ -106,6 +107,7 @@ src/_locales/            Traductions Chrome anglaise et française
 src/content/             Contrôleur DOM, styles et point d’entrée
 src/manifest.json        Manifeste MV3 source
 tests/                   Tests de parité fonctionnelle
+tools/                   Publication Chrome Web Store, hors du paquet
 ```
 
 `dist/` et `release/` sont générés et exclus de Git
@@ -125,3 +127,5 @@ Copyright © 2026 contributeurs de x-quark
 ## Publication
 
 Le guide [Publication sur le Chrome Web Store](./docs/publication-chrome-web-store.md) contient les textes de fiche, les déclarations de confidentialité, l’inventaire des visuels et la procédure de versionnement
+
+`pnpm webstore publish` envoie le ZIP de la version et le soumet à l’examen via l’API officielle du Chrome Web Store. Le guide décrit la configuration unique, et les identifiants restent hors du dépôt

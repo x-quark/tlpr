@@ -84,17 +84,18 @@ The ZIP contains `manifest.json`, the GPL license, and a `SOURCE.md` notice at i
 
 ## Development
 
-| Command              | Purpose                                                   |
-| -------------------- | --------------------------------------------------------- |
-| `pnpm assets`        | Generate PNG icons and store visuals from the SVG sources |
-| `pnpm format`        | Format tracked source files                               |
-| `pnpm lint`          | Analyze the code with ESLint                              |
-| `pnpm typecheck`     | Run strict TypeScript checking                            |
-| `pnpm test`          | Run Vitest tests in JSDOM                                 |
-| `pnpm test:coverage` | Run the tests with V8 coverage and regression thresholds  |
-| `pnpm build`         | Build the unpacked extension into `dist/`                 |
-| `pnpm package`       | Build the ZIP and checksum into `release/`                |
-| `pnpm check`         | Run every quality gate and validate the final package     |
+| Command              | Purpose                                                    |
+| -------------------- | ---------------------------------------------------------- |
+| `pnpm assets`        | Generate PNG icons and store visuals from the SVG sources  |
+| `pnpm format`        | Format tracked source files                                |
+| `pnpm lint`          | Analyze the code with ESLint                               |
+| `pnpm typecheck`     | Run strict TypeScript checking                             |
+| `pnpm test`          | Run Vitest tests in JSDOM                                  |
+| `pnpm test:coverage` | Run the tests with V8 coverage and regression thresholds   |
+| `pnpm build`         | Build the unpacked extension into `dist/`                  |
+| `pnpm package`       | Build the ZIP and checksum into `release/`                 |
+| `pnpm check`         | Run every quality gate and validate the final package      |
+| `pnpm webstore`      | Check, upload, or submit a release on the Chrome Web Store |
 
 ## Project structure
 
@@ -106,6 +107,7 @@ src/_locales/            English and French Chrome translations
 src/content/             DOM controller, styles, and entry point
 src/manifest.json        Source MV3 manifest
 tests/                   Functional parity tests
+tools/                   Chrome Web Store publishing, outside the package
 ```
 
 `dist/` and `release/` are generated and excluded from Git
@@ -125,3 +127,5 @@ Copyright © 2026 x-quark contributors
 ## Publishing
 
 The [Chrome Web Store publication guide](./docs/publication-chrome-web-store.md) contains the listing copy, privacy declarations, visual inventory, and versioning procedure
+
+`pnpm webstore publish` uploads the release ZIP and submits it for review through the official Chrome Web Store API. The guide describes the one-time setup, and credentials stay outside the repository
